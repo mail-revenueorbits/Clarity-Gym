@@ -4,7 +4,9 @@ import Dashboard from './components/Dashboard';
 import MembersList from './components/MembersList';
 import MemberDetailView from './components/MemberDetailView';
 import MemberFormModal from './components/MemberFormModal';
-import { LayoutDashboard, Menu, X, Users, Loader2 } from 'lucide-react';
+import LoginPage from './components/LoginPage';
+import { useAuth } from './components/AuthContext';
+import { LayoutDashboard, Menu, X, Users, Loader2, LogOut } from 'lucide-react';
 import { memberService } from './services/memberService';
 
 const ClarityIcon = ({ className }: { className?: string }) => (
@@ -19,6 +21,8 @@ const ClarityIcon = ({ className }: { className?: string }) => (
 );
 
 const App = () => {
+  const { user, isLoading: authLoading, signOut } = useAuth();
+
   const [showSplash, setShowSplash] = useState(true);
   const [isSplashFading, setIsSplashFading] = useState(false);
 
@@ -39,8 +43,20 @@ const App = () => {
     const fadeTimer = setTimeout(() => setIsSplashFading(true), 2500);
     // Remove from DOM at 3.2s (allowing 700ms for transition)
     const removeTimer = setTimeout(() => setShowSplash(false), 3200);
-    
-    // Load members
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, []);
+
+  // Load members when user is authenticated
+  useEffect(() => {
+    if (!user) {
+      setMembers([]);
+      return;
+    }
+
     const loadData = async () => {
       setIsLoading(true);
       try {
@@ -53,12 +69,23 @@ const App = () => {
       }
     };
     loadData();
+  }, [user]);
 
-    return () => {
-      clearTimeout(fadeTimer);
-      clearTimeout(removeTimer);
-    };
-  }, []);
+  // --- If still loading auth, show splash ---
+  if (authLoading) {
+    return (
+      <div className="fixed inset-0 bg-red-600 flex flex-col items-center justify-center z-[100]">
+        <ClarityIcon className="w-24 h-24 text-white mb-6 animate-pulse" />
+        <h1 className="text-5xl font-bold text-white tracking-tighter mb-2">Clarity</h1>
+        <p className="text-white/80 text-sm font-bold tracking-widest uppercase mt-2 shadow-sm bg-red-700 px-4 py-1.5 rounded-full">Gym Management</p>
+      </div>
+    );
+  }
+
+  // --- If not authenticated, show login ---
+  if (!user) {
+    return <LoginPage />;
+  }
 
   // --- Member Handlers ---
   const handleOpenAddMember = () => {
@@ -76,7 +103,8 @@ const App = () => {
         const updatedMember: Member = { ...editingMember, ...formData };
         setMembers(prev => prev.map(m => m.id === editingMember.id ? updatedMember : m));
         try {
-            await memberService.updateMember(updatedMember);
+            const saved = await memberService.updateMember(updatedMember);
+            setMembers(prev => prev.map(m => m.id === editingMember.id ? saved : m));
         } catch(error) { console.error(error); }
     } else {
         const optimisticMember: Member = { 
@@ -195,6 +223,19 @@ const App = () => {
                 <span>{tab.label}</span>
               </button>
             ))}
+          </div>
+          {/* Sign Out Button */}
+          <div className="p-4 border-t border-slate-100">
+            <div className="mb-3 px-4">
+              <p className="text-xs font-medium text-slate-400 truncate">{user.email}</p>
+            </div>
+            <button 
+              onClick={signOut}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all font-medium"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Sign Out</span>
+            </button>
           </div>
         </nav>
 
