@@ -129,27 +129,48 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
               <div className="flex flex-col md:flex-row gap-8 items-start mb-8">
                  {/* Profile Picture Upload Section */}
                  <div className="flex flex-col items-center gap-3">
-                    <div 
-                      className="relative w-32 h-32 rounded-full overflow-hidden bg-slate-100 border-4 border-white shadow-md group cursor-pointer"
-                      onClick={() => document.getElementById('profile-upload')?.click()}
-                    >
+                    <div className="relative w-32 h-32 rounded-full overflow-hidden bg-slate-100 border-4 border-white shadow-md">
                       {formData.profilePicture ? (
                         <img src={formData.profilePicture} alt="Profile" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 group-hover:bg-slate-200 transition-all">
+                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
                           <Camera className="w-8 h-8 mb-1" />
-                          <span className="text-[10px] font-bold uppercase tracking-tighter">Capture</span>
+                          <span className="text-[10px] font-bold uppercase tracking-tighter">No Photo</span>
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                         <Upload className="text-white w-6 h-6" />
-                      </div>
                       {isProcessing && (
                         <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
                            <Loader2 className="w-6 h-6 animate-spin text-red-600" />
                         </div>
                       )}
                     </div>
+                    {/* Two separate buttons: Camera & Upload */}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('profile-camera')?.click()}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors"
+                      >
+                        <Camera className="w-3.5 h-3.5" /> Camera
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('profile-upload')?.click()}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors"
+                      >
+                        <Upload className="w-3.5 h-3.5" /> Upload
+                      </button>
+                    </div>
+                    {/* Hidden input for CAMERA capture */}
+                    <input 
+                      id="profile-camera"
+                      type="file" 
+                      accept="image/*" 
+                      capture="environment"
+                      className="hidden" 
+                      onChange={handleFileChange}
+                    />
+                    {/* Hidden input for FILE upload */}
                     <input 
                       id="profile-upload"
                       type="file" 
