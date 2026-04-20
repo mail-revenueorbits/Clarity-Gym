@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Member } from '../types';
 import { X, UserPlus, FileEdit, Camera, Upload, Loader2 } from 'lucide-react';
 import { NepaliDatePicker, makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
-import '@etpl/nepali-datepicker/styles';
 interface MemberFormModalProps {
   isOpen: boolean;
   onClose: () => void;
