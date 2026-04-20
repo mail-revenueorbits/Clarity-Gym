@@ -123,11 +123,21 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Action Needed: Expiring */}
           <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm">
-             <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
-                   <AlertTriangle className="w-5 h-5" />
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                   <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+                      <AlertTriangle className="w-5 h-5" />
+                   </div>
+                   <h3 className="text-xl font-bold text-slate-800">Expiring Memberships</h3>
                 </div>
-                <h3 className="text-xl font-bold text-slate-800">Expiring Memberships</h3>
+                {attentionNeeded.length > 0 && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); alert('Preparing to send bulk reminders via Sparrow SMS...'); }}
+                    className="text-xs font-bold bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                  >
+                    Remind All
+                  </button>
+                )}
              </div>
              
              <div className="space-y-4">
@@ -136,15 +146,26 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick }) => {
                  ) : (
                      attentionNeeded.map((item, idx) => (
                          <div key={idx} onClick={() => onMemberClick(item.member.id)} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors border border-transparent hover:border-slate-200 group">
-                             <div>
-                                 <h4 className="font-bold text-slate-800 group-hover:text-red-600 transition-colors">{item.member.name}</h4>
-                                 <p className="text-sm font-medium text-slate-500">{item.member.phone}</p>
+                             <div className="flex items-center gap-4">
+                                 <div>
+                                     <h4 className="font-bold text-slate-800 group-hover:text-red-600 transition-colors">{item.member.name}</h4>
+                                     <p className="text-sm font-medium text-slate-500">{item.member.phone}</p>
+                                 </div>
                              </div>
-                             <div className="text-right">
-                                 <span className={`px-3 py-1 rounded-lg text-xs font-bold ${item.daysLeft < 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                                     {item.daysLeft < 0 ? `Expired ${Math.abs(item.daysLeft)} days ago` : `Expires in ${item.daysLeft} days`}
-                                 </span>
-                                 <p className="text-xs text-slate-400 font-medium mt-1 uppercase">{item.sub.planName}</p>
+                             <div className="flex items-center gap-4">
+                                 <div className="text-right">
+                                     <span className={`px-3 py-1 rounded-lg text-xs font-bold ${item.daysLeft < 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                                         {item.daysLeft < 0 ? `Expired ${Math.abs(item.daysLeft)} days ago` : `Expires in ${item.daysLeft} days`}
+                                     </span>
+                                     <p className="text-xs text-slate-400 font-medium mt-1 uppercase">{item.sub.planName}</p>
+                                 </div>
+                                 <button 
+                                   onClick={(e) => { e.stopPropagation(); alert(`Sending reminder to ${item.member.name}...`); }}
+                                   className="p-2 bg-white text-slate-400 hover:text-red-600 rounded-xl border border-slate-100 shadow-sm transition-colors"
+                                   title="Send Reminder"
+                                 >
+                                   <MessageSquare className="w-4 h-4" />
+                                 </button>
                              </div>
                          </div>
                      ))
