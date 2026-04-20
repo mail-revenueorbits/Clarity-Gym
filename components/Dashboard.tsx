@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Member, Subscription, PaymentType } from '../types';
-import { TrendingUp, Users, AlertTriangle, UserMinus, ShieldAlert, CreditCard } from 'lucide-react';
+import { TrendingUp, Users, AlertTriangle, UserMinus, ShieldAlert, CreditCard, MessageSquare } from 'lucide-react';
 
 interface DashboardProps {
   members: Member[];
