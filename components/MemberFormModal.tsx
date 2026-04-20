@@ -208,6 +208,8 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
                       value={formData.joinedDate ? makeDualDateValueFromAd(new Date(formData.joinedDate)) : null}
                       onChange={(val) => setFormData(prev => ({ ...prev, joinedDate: val?.formatted.ad || '' }))}
                       format="YYYY-MM-DD"
+                      showCalendarSystemToggle={true}
+                      showLanguageToggle={true}
                       classNames={{
                          input: "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
                       }}
