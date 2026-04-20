@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Member } from '../types';
 import { X, UserPlus, FileEdit, Camera, Upload, Loader2 } from 'lucide-react';
-
+import { NepaliDatePicker, makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
+import '@etpl/nepali-datepicker/styles';
 interface MemberFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -202,9 +203,16 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Home Address</label>
                     <input type="text" name="address" required value={formData.address} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" placeholder="Street layout, City" />
                  </div>
-                 <div>
+                 <div className="relative z-[100]">
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Joined Date</label>
-                    <input type="date" name="joinedDate" required value={formData.joinedDate} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" />
+                    <NepaliDatePicker 
+                      value={formData.joinedDate ? makeDualDateValueFromAd(new Date(formData.joinedDate)) : null}
+                      onChange={(val) => setFormData(prev => ({ ...prev, joinedDate: val?.formatted.ad || '' }))}
+                      format="YYYY-MM-DD"
+                      classNames={{
+                         input: "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                      }}
+                    />
                  </div>
                </div>
             </div>
