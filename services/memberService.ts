@@ -30,7 +30,7 @@ interface DbSubscription {
   notes: string;
   is_active: boolean;
   created_at: string;
-  payments?: DbPayment[];
+  payments?: DbPayment[] | DbPayment;
 }
 
 interface DbPayment {
@@ -66,7 +66,9 @@ function dbToMember(row: DbMember): Member {
 }
 
 function dbToSubscription(row: DbSubscription): Subscription {
-  const p = row.payments?.[0]; // 1-to-1 relationship
+  // Supabase returns payments as a single object (unique FK) or array
+  const rawPayments = row.payments;
+  const p = Array.isArray(rawPayments) ? rawPayments[0] : rawPayments;
   const payment: PaymentDetails = p
     ? {
         type: p.type === 'Split' ? PaymentType.SPLIT : PaymentType.FULL,

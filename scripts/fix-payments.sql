@@ -1,28 +1,14 @@
--- Insert a payment for EVERY subscription that doesn't have one yet
--- Uses the plan name to determine the correct amount
--- Run this in Supabase SQL Editor
+-- Fix RLS policies on payments table so the app can read them
+-- Run this in Supabase Dashboard → SQL Editor → New Query → Paste → Run
 
-INSERT INTO payments (subscription_id, type, total_amount, deposit_amount, deposit_paid, remaining_paid)
-SELECT 
-  s.id,
-  'Full',
-  CASE s.plan_name
-    WHEN '1 Month'  THEN 2500
-    WHEN '3 Months' THEN 6000
-    WHEN '6 Months' THEN 12000
-    WHEN '1 Year'   THEN 18000
-    ELSE 2500
-  END,
-  CASE s.plan_name
-    WHEN '1 Month'  THEN 2500
-    WHEN '3 Months' THEN 6000
-    WHEN '6 Months' THEN 12000
-    WHEN '1 Year'   THEN 18000
-    ELSE 2500
-  END,
-  true,
-  true
-FROM subscriptions s
-WHERE NOT EXISTS (
-  SELECT 1 FROM payments p WHERE p.subscription_id = s.id
-);
+-- Allow all authenticated users to read payments
+CREATE POLICY "Allow authenticated read payments" ON payments
+  FOR SELECT TO authenticated USING (true);
+
+-- Allow all authenticated users to create payments  
+CREATE POLICY "Allow authenticated insert payments" ON payments
+  FOR INSERT TO authenticated WITH CHECK (true);
+
+-- Allow all authenticated users to update payments
+CREATE POLICY "Allow authenticated update payments" ON payments
+  FOR UPDATE TO authenticated USING (true);
