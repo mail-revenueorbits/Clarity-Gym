@@ -208,9 +208,16 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
                     <label className={labelClass}>Phone</label>
                     <input type="tel" name="phone" required value={formData.phone} onChange={handleChange} className={inputClass} placeholder="98XXXXXXXX" />
                  </div>
-                 <div>
+                 <div className="relative z-[101]">
                     <label className={labelClass}>DOB</label>
-                    <input type="date" name="dob" value={formData.dob} onChange={handleChange} className={inputClass} />
+                    <NepaliDatePicker 
+                      value={formData.dob ? makeDualDateValueFromAd(new Date(formData.dob)) : null}
+                      onChange={(val) => setFormData(prev => ({ ...prev, dob: val?.formatted.ad || '' }))}
+                      format="YYYY-MM-DD"
+                      showCalendarSystemToggle={true}
+                      showLanguageToggle={true}
+                      classNames={{ input: inputClass }}
+                    />
                  </div>
                  <div className="relative z-[100]">
                     <label className={labelClass}>Joined Date</label>

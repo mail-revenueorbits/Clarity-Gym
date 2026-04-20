@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Member, Subscription, PaymentType } from '../types';
 import { X, Calendar, Plus } from 'lucide-react';
+import { NepaliDatePicker, makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 
 interface SubscriptionFormModalProps {
   isOpen: boolean;
@@ -70,13 +71,27 @@ const SubscriptionFormModal: React.FC<SubscriptionFormModalProps> = ({ isOpen, o
                 </label>
              </div>
 
-            <div>
+            <div className="relative z-[100]">
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Start Date</label>
-              <input type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" />
+              <NepaliDatePicker 
+                value={startDate ? makeDualDateValueFromAd(new Date(startDate)) : null}
+                onChange={(val) => setStartDate(val?.formatted.ad || '')}
+                format="YYYY-MM-DD"
+                showCalendarSystemToggle={true}
+                showLanguageToggle={true}
+                classNames={{ input: "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" }}
+              />
             </div>
-            <div>
+            <div className="relative z-[99]">
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">End Date (Expiry)</label>
-              <input type="date" required value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" />
+              <NepaliDatePicker 
+                value={endDate ? makeDualDateValueFromAd(new Date(endDate)) : null}
+                onChange={(val) => setEndDate(val?.formatted.ad || '')}
+                format="YYYY-MM-DD"
+                showCalendarSystemToggle={true}
+                showLanguageToggle={true}
+                classNames={{ input: "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" }}
+              />
             </div>
           </div>
 
