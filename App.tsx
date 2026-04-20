@@ -274,6 +274,7 @@ const App = () => {
           onClose={() => setIsMemberModalOpen(false)}
           onSubmit={handleSaveMember}
           initialData={editingMember}
+          existingMembers={members}
         />
       </div>
     </>

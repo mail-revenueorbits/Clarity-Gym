@@ -24,14 +24,18 @@ export interface Subscription {
 
 export interface Member {
   id: string;
-  memberNumber: string; // Unique identifier for gym access
+  memberNumber: string; // Unique identifier for gym access (app-assigned)
   name: string;
+  gender: string;
   phone: string;
   email: string;
+  dob: string; // YYYY-MM-DD
   address: string;
   joinedDate: string; // YYYY-MM-DD
-  emergencyContact: string;
+  emergencyContact: string; // Contact 1
+  emergencyContact2: string; // Contact 2
   bloodGroup: string;
+  accessLevel: string; // 'Gym', 'Gym + Cardio', 'Gym + Cardio + PT'
   notes: string;
   subscriptions: Subscription[];
   profilePicture?: string; // 1080x1080 compressed JPEG (base64)

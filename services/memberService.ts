@@ -7,12 +7,16 @@ interface DbMember {
   id: string;
   member_number: string;
   name: string;
+  gender: string;
   phone: string;
   email: string;
+  dob: string;
   address: string;
   joined_date: string;
   emergency_contact: string;
+  emergency_contact_2: string;
   blood_group: string;
+  access_level: string;
   notes: string;
   profile_picture_url: string;
   thumbnail_url: string;
@@ -50,12 +54,16 @@ function dbToMember(row: DbMember): Member {
     id: row.id,
     memberNumber: row.member_number,
     name: row.name,
+    gender: row.gender || '',
     phone: row.phone,
     email: row.email || '',
+    dob: row.dob || '',
     address: row.address || '',
     joinedDate: row.joined_date,
     emergencyContact: row.emergency_contact || '',
+    emergencyContact2: row.emergency_contact_2 || '',
     bloodGroup: row.blood_group || '',
+    accessLevel: row.access_level || 'Gym',
     notes: row.notes || '',
     profilePicture: row.profile_picture_url || '',
     thumbnail: row.thumbnail_url || '',
@@ -183,12 +191,16 @@ export const memberService = {
         id: member.id || undefined,
         member_number: member.memberNumber,
         name: member.name,
+        gender: member.gender,
         phone: member.phone,
         email: member.email,
+        dob: member.dob,
         address: member.address,
         joined_date: member.joinedDate,
         emergency_contact: member.emergencyContact,
+        emergency_contact_2: member.emergencyContact2,
         blood_group: member.bloodGroup,
+        access_level: member.accessLevel,
         notes: member.notes,
         profile_picture_url: profilePictureUrl,
         thumbnail_url: thumbnailUrl,
@@ -230,12 +242,16 @@ export const memberService = {
       .update({
         member_number: member.memberNumber,
         name: member.name,
+        gender: member.gender,
         phone: member.phone,
         email: member.email,
+        dob: member.dob,
         address: member.address,
         joined_date: member.joinedDate,
         emergency_contact: member.emergencyContact,
+        emergency_contact_2: member.emergencyContact2,
         blood_group: member.bloodGroup,
+        access_level: member.accessLevel,
         notes: member.notes,
         profile_picture_url: profilePictureUrl,
         thumbnail_url: thumbnailUrl,

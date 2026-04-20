@@ -82,21 +82,27 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
              </div>
 
              <div className="mt-8 space-y-5">
-                <div className="flex items-center gap-3 text-slate-600"><Phone className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">{member.phone}</span></div>
-                {member.email && <div className="flex items-center gap-3 text-slate-600"><User className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium truncate">{member.email}</span></div>}
-                <div className="flex items-center gap-3 text-slate-600"><MapPin className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">{member.address}</span></div>
-                <div className="flex items-center gap-3 text-slate-600"><Calendar className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">Joined {member.joinedDate}</span></div>
-             </div>
+                 {member.gender && <div className="flex items-center gap-3 text-slate-600"><User className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">{member.gender}</span></div>}
+                 <div className="flex items-center gap-3 text-slate-600"><Phone className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">{member.phone}</span></div>
+                 {member.email && <div className="flex items-center gap-3 text-slate-600"><User className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium truncate">{member.email}</span></div>}
+                 {member.dob && <div className="flex items-center gap-3 text-slate-600"><Calendar className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">DOB: {member.dob}</span></div>}
+                 <div className="flex items-center gap-3 text-slate-600"><Calendar className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">Joined {member.joinedDate}</span></div>
+                 {member.accessLevel && <div className="flex items-center gap-3"><span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold uppercase">{member.accessLevel}</span></div>}
+              </div>
           </div>
 
           <div className="bg-red-50 rounded-3xl p-6 md:p-8 border border-red-100 relative overflow-hidden">
              <HeartPulse className="absolute -right-4 -bottom-4 w-32 h-32 text-red-600/10" />
-             <h3 className="text-sm font-bold text-red-900 uppercase tracking-wider mb-5 flex items-center gap-2">Health / Emergency</h3>
+             <h3 className="text-sm font-bold text-red-900 uppercase tracking-wider mb-5 flex items-center gap-2">Emergency & Health</h3>
              <div className="space-y-4 relative">
                 <div>
-                  <p className="text-xs font-bold text-red-800/60 uppercase tracking-wider mb-1">Emergency Contact</p>
+                  <p className="text-xs font-bold text-red-800/60 uppercase tracking-wider mb-1">Emergency Contact 1</p>
                   <p className="font-medium text-red-900">{member.emergencyContact}</p>
                 </div>
+                {member.emergencyContact2 && <div>
+                  <p className="text-xs font-bold text-red-800/60 uppercase tracking-wider mb-1">Emergency Contact 2</p>
+                  <p className="font-medium text-red-900">{member.emergencyContact2}</p>
+                </div>}
                 <div>
                   <p className="text-xs font-bold text-red-800/60 uppercase tracking-wider mb-1">Blood Group</p>
                   <p className="font-medium text-red-900">{member.bloodGroup || 'Not provided'}</p>
