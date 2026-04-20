@@ -24,14 +24,11 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick }) => {
     );
   }, [members, todayStr]);
 
-  // Revenue calculation for currently active subscriptions starting in this month
+  // Revenue calculation — total collected from all subscriptions
   const totalRevenueThisMonth = useMemo(() => {
     return members.reduce((total, m) => {
-        const subsThisMonth = m.subscriptions.filter(s => {
-            const startD = new Date(s.startDate);
-            return startD.getMonth() === currentMonthIdx && startD.getFullYear() === currentYear && !m.isDeleted;
-        });
-        const revenue = subsThisMonth.reduce((acc, s) => {
+        if (m.isDeleted) return total;
+        const revenue = m.subscriptions.reduce((acc, s) => {
              let paid = 0;
              if (s.payment.remainingPaid) paid = s.payment.totalAmount;
              else if (s.payment.type === PaymentType.SPLIT && s.payment.depositPaid) paid = s.payment.depositAmount || 0;
@@ -39,7 +36,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick }) => {
         }, 0);
         return total + revenue;
     }, 0);
-  }, [members, currentMonthIdx, currentYear]);
+  }, [members]);
 
   // Expiring soon or recently expired
   const attentionNeeded = useMemo(() => {
@@ -100,7 +97,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick }) => {
         <StatCard 
           label="Total Revenue" 
           value={`NPR ${totalRevenueThisMonth.toLocaleString()}`} 
-          subtitle={currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+          subtitle="Total Collected"
           icon={TrendingUp} 
           colorClass="bg-emerald-500 text-emerald-600" 
         />
