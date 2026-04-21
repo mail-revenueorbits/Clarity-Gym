@@ -8,7 +8,7 @@ import PaymentLogs from './components/PaymentLogs';
 import LoginPage from './components/LoginPage';
 import Settings from './components/Settings';
 import { useAuth } from './components/AuthContext';
-import { LayoutDashboard, Menu, X, Users, Settings as SettingsIcon, CreditCard, Loader2, LogOut, Eye, EyeOff } from 'lucide-react';
+import { LayoutDashboard, Menu, X, Users, Package, CreditCard, Loader2, LogOut, Eye, EyeOff } from 'lucide-react';
 import { memberService } from './services/memberService';
 
 const ClarityIcon = ({ className }: { className?: string }) => (
@@ -215,7 +215,7 @@ const App = () => {
               { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
               { id: 'members', icon: Users, label: 'Members' },
               { id: 'payment-logs', icon: CreditCard, label: 'Payment Logs' },
-              { id: 'settings', icon: SettingsIcon, label: 'Packages' },
+              { id: 'settings', icon: Package, label: 'Packages' },
             ].map(tab => (
               <button 
                 key={tab.id}
