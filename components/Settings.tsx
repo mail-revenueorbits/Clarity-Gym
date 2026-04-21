@@ -100,30 +100,32 @@ const Settings: React.FC = () => {
            {!isEditing ? (
              <button 
                onClick={() => setIsEditing(true)}
-               className="flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl transition-all shadow-sm bg-slate-100 text-slate-700 hover:bg-slate-200"
+               className="p-3 font-bold rounded-xl transition-all shadow-sm bg-slate-100 text-slate-700 hover:bg-slate-200"
+               title="Edit Prices"
              >
-               <Edit2 className="w-5 h-5" /> Edit Prices
+               <Edit2 className="w-5 h-5" />
              </button>
            ) : (
-             <div className="flex items-center gap-3">
+             <div className="flex items-center gap-2">
                <button 
                  onClick={handleCancel}
                  disabled={isSaving}
-                 className="flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl transition-all bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                 className="p-3 font-bold rounded-xl transition-all bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                 title="Cancel"
                >
-                 <X className="w-5 h-5" /> Cancel
+                 <X className="w-5 h-5" />
                </button>
                <button 
                  onClick={handleSave} 
                  disabled={isSaving}
-                 className={`flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl transition-all shadow-sm ${
+                 className={`p-3 font-bold rounded-xl transition-all shadow-sm ${
                    saveSuccess 
                     ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' 
                     : 'bg-red-600 text-white hover:bg-red-700 shadow-red-200'
                  } disabled:opacity-50`}
+                 title="Save Changes"
                >
                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : (saveSuccess ? <Check className="w-5 h-5" /> : <Save className="w-5 h-5" />)}
-                 {saveSuccess ? 'Saved!' : 'Save Changes'}
                </button>
              </div>
            )}
@@ -153,9 +155,10 @@ const Settings: React.FC = () => {
                         <div className="relative inline-flex items-center justify-end">
                           <span className="absolute left-3 text-slate-400 text-sm font-medium">Rs.</span>
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
                             value={matrix[category][duration] === 0 ? '' : matrix[category][duration]}
-                            onChange={(e) => handlePriceChange(category, duration, e.target.value)}
+                            onChange={(e) => handlePriceChange(category, duration, e.target.value.replace(/\D/g, ''))}
                             className="w-32 pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none text-right font-medium text-slate-700 transition-colors group-hover:border-slate-300"
                             placeholder="0"
                           />
