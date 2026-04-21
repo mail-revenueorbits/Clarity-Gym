@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { settingsService, PricingMatrix } from '../services/settingsService';
-import { Settings as SettingsIcon, Save, Loader2, Check } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Loader2, Check, Edit2, X } from 'lucide-react';
 
 const Settings: React.FC = () => {
   const [matrix, setMatrix] = useState<PricingMatrix | null>(null);
+  const [originalMatrix, setOriginalMatrix] = useState<PricingMatrix | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -13,6 +15,7 @@ const Settings: React.FC = () => {
       try {
         const data = await settingsService.getPricingMatrix();
         setMatrix(data);
+        setOriginalMatrix(JSON.parse(JSON.stringify(data)));
       } catch (error) {
         console.error('Failed to fetch pricing matrix', error);
       } finally {
@@ -39,13 +42,25 @@ const Settings: React.FC = () => {
     setSaveSuccess(false);
   };
 
+  const handleCancel = () => {
+    if (originalMatrix) {
+      setMatrix(JSON.parse(JSON.stringify(originalMatrix)));
+    }
+    setIsEditing(false);
+    setSaveSuccess(false);
+  };
+
   const handleSave = async () => {
     if (!matrix) return;
     setIsSaving(true);
     try {
       await settingsService.updatePricingMatrix(matrix);
+      setOriginalMatrix(JSON.parse(JSON.stringify(matrix)));
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      setTimeout(() => {
+        setSaveSuccess(false);
+        setIsEditing(false);
+      }, 1500);
     } catch (error) {
       console.error('Failed to save pricing matrix', error);
       alert('Failed to save settings. Please try again.');
@@ -82,19 +97,36 @@ const Settings: React.FC = () => {
                  <p className="text-xs text-slate-500 font-medium">Configure the cost of each membership plan</p>
               </div>
            </div>
-           
-           <button 
-             onClick={handleSave} 
-             disabled={isSaving}
-             className={`flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl transition-all shadow-sm ${
-               saveSuccess 
-                ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' 
-                : 'bg-red-600 text-white hover:bg-red-700 shadow-red-200'
-             } disabled:opacity-50`}
-           >
-             {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : (saveSuccess ? <Check className="w-5 h-5" /> : <Save className="w-5 h-5" />)}
-             {saveSuccess ? 'Saved!' : 'Save Changes'}
-           </button>
+           {!isEditing ? (
+             <button 
+               onClick={() => setIsEditing(true)}
+               className="flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl transition-all shadow-sm bg-slate-100 text-slate-700 hover:bg-slate-200"
+             >
+               <Edit2 className="w-5 h-5" /> Edit Prices
+             </button>
+           ) : (
+             <div className="flex items-center gap-3">
+               <button 
+                 onClick={handleCancel}
+                 disabled={isSaving}
+                 className="flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl transition-all bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+               >
+                 <X className="w-5 h-5" /> Cancel
+               </button>
+               <button 
+                 onClick={handleSave} 
+                 disabled={isSaving}
+                 className={`flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl transition-all shadow-sm ${
+                   saveSuccess 
+                    ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' 
+                    : 'bg-red-600 text-white hover:bg-red-700 shadow-red-200'
+                 } disabled:opacity-50`}
+               >
+                 {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : (saveSuccess ? <Check className="w-5 h-5" /> : <Save className="w-5 h-5" />)}
+                 {saveSuccess ? 'Saved!' : 'Save Changes'}
+               </button>
+             </div>
+           )}
         </div>
 
         <div className="overflow-x-auto">
@@ -117,16 +149,20 @@ const Settings: React.FC = () => {
                   </td>
                   {durations.map(duration => (
                     <td key={duration} className="py-5 px-4 text-right">
-                      <div className="relative inline-flex items-center justify-end">
-                        <span className="absolute left-3 text-slate-400 text-sm font-medium">Rs.</span>
-                        <input
-                          type="number"
-                          value={matrix[category][duration] === 0 ? '' : matrix[category][duration]}
-                          onChange={(e) => handlePriceChange(category, duration, e.target.value)}
-                          className="w-32 pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none text-right font-medium text-slate-700 transition-colors group-hover:border-slate-300"
-                          placeholder="0"
-                        />
-                      </div>
+                      {isEditing ? (
+                        <div className="relative inline-flex items-center justify-end">
+                          <span className="absolute left-3 text-slate-400 text-sm font-medium">Rs.</span>
+                          <input
+                            type="number"
+                            value={matrix[category][duration] === 0 ? '' : matrix[category][duration]}
+                            onChange={(e) => handlePriceChange(category, duration, e.target.value)}
+                            className="w-32 pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none text-right font-medium text-slate-700 transition-colors group-hover:border-slate-300"
+                            placeholder="0"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-slate-700 font-bold text-[15px]">Rs. {matrix[category][duration]}</span>
+                      )}
                     </td>
                   ))}
                 </tr>
