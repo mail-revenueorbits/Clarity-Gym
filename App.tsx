@@ -5,8 +5,9 @@ import MembersList from './components/MembersList';
 import MemberDetailView from './components/MemberDetailView';
 import MemberFormModal from './components/MemberFormModal';
 import LoginPage from './components/LoginPage';
+import Settings from './components/Settings';
 import { useAuth } from './components/AuthContext';
-import { LayoutDashboard, Menu, X, Users, Loader2, LogOut } from 'lucide-react';
+import { LayoutDashboard, Menu, X, Users, Settings as SettingsIcon, Loader2, LogOut } from 'lucide-react';
 import { memberService } from './services/memberService';
 
 const ClarityIcon = ({ className }: { className?: string }) => (
@@ -26,7 +27,7 @@ const App = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [isSplashFading, setIsSplashFading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'member-details'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'member-details' | 'settings'>('dashboard');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -168,6 +169,7 @@ const App = () => {
       case 'dashboard': return 'Dashboard';
       case 'members': return 'Members Base';
       case 'member-details': return 'Member Profile';
+      case 'settings': return 'Gym Settings';
       default: return 'Clarity Gym';
     }
   };
@@ -209,6 +211,7 @@ const App = () => {
             {[
               { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
               { id: 'members', icon: Users, label: 'Members' },
+              { id: 'settings', icon: SettingsIcon, label: 'Settings' },
             ].map(tab => (
               <button 
                 key={tab.id}
@@ -264,6 +267,7 @@ const App = () => {
                          onDeleteMember={handleDeleteMember}
                      />
                   }
+                  {activeTab === 'settings' && <Settings />}
               </>
             )}
           </div>
