@@ -59,23 +59,6 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick }) => {
       return expiringList.sort((a, b) => a.daysLeft - b.daysLeft);
   }, [members]);
 
-  const pendingPayments = useMemo(() => {
-      const pending: { member: Member, sub: Subscription, remaining: number }[] = [];
-      members.forEach(m => {
-          if (m.isDeleted) return;
-          m.subscriptions.forEach(s => {
-              if (!s.isActive) return;
-              if (!s.payment.remainingPaid) {
-                  let paid = 0;
-                  if (s.payment.type === PaymentType.SPLIT && s.payment.depositPaid) {
-                      paid = s.payment.depositAmount || 0;
-                  }
-                  pending.push({ member: m, sub: s, remaining: s.payment.totalAmount - paid });
-              }
-          });
-      });
-      return pending;
-  }, [members]);
 
   const StatCard = ({ label, value, icon: Icon, colorClass, subtitle }: { label: string, value: string | number, icon: any, colorClass: string, subtitle: string }) => (
     <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-start justify-between">
@@ -117,7 +100,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick }) => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
           {/* Action Needed: Expiring */}
           <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm">
               <div className="flex items-center justify-between mb-6">
@@ -170,36 +153,6 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick }) => {
              </div>
           </div>
 
-          {/* Action Needed: Pending Payments */}
-          <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm">
-             <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                   <CreditCard className="w-5 h-5" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-800">Pending Payments</h3>
-             </div>
-             
-             <div className="space-y-4">
-                 {pendingPayments.length === 0 ? (
-                     <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-200 border-dashed text-slate-500 font-medium">No pending payments.</div>
-                 ) : (
-                     pendingPayments.map((item, idx) => (
-                         <div key={idx} onClick={() => onMemberClick(item.member.id)} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors border border-transparent hover:border-slate-200 group">
-                             <div>
-                                 <h4 className="font-bold text-slate-800 group-hover:text-amber-600 transition-colors">{item.member.name}</h4>
-                                 <p className="text-sm font-medium text-slate-500">{item.member.phone}</p>
-                             </div>
-                             <div className="text-right">
-                                 <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-bold">
-                                     NPR {item.remaining.toLocaleString()}
-                                 </span>
-                                 <p className="text-xs text-slate-400 font-medium mt-1 uppercase">{item.sub.planName}</p>
-                             </div>
-                         </div>
-                     ))
-                 )}
-             </div>
-          </div>
       </div>
     </div>
   );
