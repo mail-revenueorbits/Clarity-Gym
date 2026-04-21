@@ -247,7 +247,7 @@ const App = () => {
 
         {/* Main Content Area */}
         <main className="md:ml-64 p-4 md:p-8 min-h-screen transition-all">
-          {pageTitle && (
+          {pageTitle && activeTab !== 'dashboard' && (
               <header className="hidden md:flex justify-between items-center mb-8 h-12">
                 <h1 className="text-2xl font-bold text-slate-800">{pageTitle}</h1>
                 {isLoading && <div className="flex items-center gap-2 text-slate-400 text-sm"><Loader2 className="w-4 h-4 animate-spin" />Syncing...</div>}

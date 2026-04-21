@@ -11,8 +11,35 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMember }) => {
   const todayStr = new Date().toISOString().split('T')[0];
-  const currentNepaliDate = makeDualDateValueFromAd(new Date());
-  const currentBsPrefix = currentNepaliDate?.formatted.bs.substring(0, 7) || '';
+  const currentNepaliDate = useMemo(() => makeDualDateValueFromAd(new Date()), []);
+  const currentYear = currentNepaliDate?.bs.year || 2081;
+  const currentMonthNum = currentNepaliDate?.bs.month || 1;
+
+  // Generate an array of the last 12 months in YYYY-MM format
+  const monthOptions = useMemo(() => {
+     const options = [];
+     let y = currentYear;
+     let m = currentMonthNum;
+     const monthNames = ["", "Baishakh", "Jestha", "Ashadh", "Shrawan", "Bhadra", "Ashwin", "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra"];
+     
+     for (let i = 0; i < 12; i++) {
+        const monthStr = m.toString().padStart(2, '0');
+        options.push({
+           value: `${y}-${monthStr}`,
+           label: `${monthNames[m]} ${y}`
+        });
+        m--;
+        if (m === 0) {
+           m = 12;
+           y--;
+        }
+     }
+     return options;
+  }, [currentYear, currentMonthNum]);
+
+  const [selectedMonthPrefix, setSelectedMonthPrefix] = React.useState<string>(
+     `${currentYear}-${currentMonthNum.toString().padStart(2, '0')}`
+  );
 
   // Active Subscriptions Calculation
   const activeMembersThisMonth = useMemo(() => {
@@ -26,12 +53,12 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
 
   // Revenue Calculation
   const totalRevenueThisMonth = useMemo(() => {
-    if (!currentBsPrefix) return 0;
+    if (!selectedMonthPrefix) return 0;
     return members.reduce((total, m) => {
         if (m.isDeleted) return total;
         const revenue = m.subscriptions.reduce((acc, s) => {
              const subVal = makeDualDateValueFromAd(new Date(s.startDate));
-             if (subVal?.formatted.bs.substring(0, 7) !== currentBsPrefix) return acc;
+             if (subVal?.formatted.bs.substring(0, 7) !== selectedMonthPrefix) return acc;
 
              let paid = 0;
              if (s.payment.remainingPaid) paid = s.payment.totalAmount;
@@ -40,17 +67,17 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
         }, 0);
         return total + revenue;
     }, 0);
-  }, [members, currentBsPrefix]);
+  }, [members, selectedMonthPrefix]);
 
   // New Members Calculation
   const newMembersThisMonth = useMemo(() => {
-     if (!currentBsPrefix) return 0;
+     if (!selectedMonthPrefix) return 0;
      return members.filter(m => {
         if (m.isDeleted) return false;
         const joinedVal = makeDualDateValueFromAd(new Date(m.joinedDate));
-        return joinedVal?.formatted.bs.substring(0, 7) === currentBsPrefix;
+        return joinedVal?.formatted.bs.substring(0, 7) === selectedMonthPrefix;
      }).length;
-  }, [members, currentBsPrefix]);
+  }, [members, selectedMonthPrefix]);
 
   // Recent Signups (Last 5 members)
   const recentMembers = useMemo(() => {
@@ -88,9 +115,23 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
 
   return (
     <div className="space-y-8 max-w-[1400px] mx-auto pb-12">
-      
-
-
+      <header className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-2">
+         <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
+         <div className="flex items-center gap-3">
+             <select 
+                value={selectedMonthPrefix}
+                onChange={(e) => setSelectedMonthPrefix(e.target.value)}
+                className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer shadow-sm"
+             >
+                {monthOptions.map(opt => (
+                   <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+             </select>
+             <button onClick={onAddMember} className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-sm transition-all flex items-center gap-2 text-sm">
+                 <Plus className="w-4 h-4" /> New Member
+             </button>
+         </div>
+      </header>
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm relative overflow-hidden group hover:border-emerald-200 transition-colors">
