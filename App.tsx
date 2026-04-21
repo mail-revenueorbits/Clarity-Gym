@@ -171,7 +171,7 @@ const App = () => {
       case 'members': return 'Members Base';
       case 'member-details': return 'Member Profile';
       case 'payment-logs': return 'Payment Logs';
-      case 'settings': return 'Gym Settings';
+      case 'settings': return 'Gym Packages';
       default: return 'Clarity Gym';
     }
   };
@@ -214,7 +214,7 @@ const App = () => {
               { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
               { id: 'members', icon: Users, label: 'Members' },
               { id: 'payment-logs', icon: CreditCard, label: 'Payment Logs' },
-              { id: 'settings', icon: SettingsIcon, label: 'Settings' },
+              { id: 'settings', icon: SettingsIcon, label: 'Packages' },
             ].map(tab => (
               <button 
                 key={tab.id}
