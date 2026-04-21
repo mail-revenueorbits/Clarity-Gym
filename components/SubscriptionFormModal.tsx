@@ -8,10 +8,14 @@ interface SubscriptionFormModalProps {
   onClose: () => void;
   onSave: (subscription: Subscription) => void;
   existingSubscription?: Subscription;
+  member: Member;
 }
 
-const SubscriptionFormModal: React.FC<SubscriptionFormModalProps> = ({ isOpen, onClose, onSave, existingSubscription }) => {
-  const [planName, setPlanName] = useState(existingSubscription?.planName || '1 Month');
+const SubscriptionFormModal: React.FC<SubscriptionFormModalProps> = ({ isOpen, onClose, onSave, existingSubscription, member }) => {
+  const [pricingMatrix, setPricingMatrix] = React.useState<any>(null);
+  const [availableDurations, setAvailableDurations] = React.useState<string[]>([]);
+
+  const [planName, setPlanName] = useState(existingSubscription?.planName || '');
   const [startDate, setStartDate] = useState(existingSubscription?.startDate || new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(existingSubscription?.endDate || '');
   const [totalAmount, setTotalAmount] = useState(existingSubscription?.payment.totalAmount || 0);
@@ -21,6 +25,33 @@ const SubscriptionFormModal: React.FC<SubscriptionFormModalProps> = ({ isOpen, o
   const [remainingPaid, setRemainingPaid] = useState(existingSubscription?.payment.remainingPaid || false);
   const [notes, setNotes] = useState(existingSubscription?.notes || '');
   const [isActive, setIsActive] = useState(existingSubscription?.isActive ?? true);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      import('../services/settingsService').then(({ settingsService }) => {
+        settingsService.getPricingMatrix().then(matrix => {
+          setPricingMatrix(matrix);
+          const category = member.accessLevel || 'Gym';
+          if (matrix[category]) {
+            const durations = Object.keys(matrix[category]);
+            setAvailableDurations(durations);
+            if (!existingSubscription && durations.length > 0) {
+              setPlanName(durations[0]);
+              setTotalAmount(matrix[category][durations[0]]);
+            }
+          }
+        });
+      });
+    }
+  }, [isOpen, member.accessLevel, existingSubscription]);
+
+  const handlePlanChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedDuration = e.target.value;
+    setPlanName(selectedDuration);
+    if (pricingMatrix && member.accessLevel && pricingMatrix[member.accessLevel]) {
+       setTotalAmount(pricingMatrix[member.accessLevel][selectedDuration] || 0);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -59,7 +90,12 @@ const SubscriptionFormModal: React.FC<SubscriptionFormModalProps> = ({ isOpen, o
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Plan Name / Duration</label>
-              <input type="text" required value={planName} onChange={e => setPlanName(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" placeholder="e.g. 3 Months Plan" />
+              <select required value={planName} onChange={handlePlanChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none">
+                 {availableDurations.length === 0 && <option value={planName}>{planName || 'Loading...'}</option>}
+                 {availableDurations.map(duration => (
+                   <option key={duration} value={duration}>{duration}</option>
+                 ))}
+              </select>
             </div>
              <div className="flex items-center mt-6">
                 <label className="flex items-center gap-3 cursor-pointer">

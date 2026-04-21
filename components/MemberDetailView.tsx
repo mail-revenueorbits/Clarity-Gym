@@ -181,6 +181,7 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
         onClose={() => setIsSubModalOpen(false)} 
         onSave={handleSaveSub} 
         existingSubscription={editingSub} 
+        member={member}
       />
     </div>
   );
