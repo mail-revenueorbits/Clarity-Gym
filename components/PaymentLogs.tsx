@@ -5,6 +5,7 @@ import { Search, Filter, CreditCard, CheckCircle2, Clock, DollarSign, Download, 
 interface PaymentLogsProps {
   members: Member[];
   onMemberClick: (id: string) => void;
+  privacyMode: boolean;
 }
 
 type PaymentRecord = {
@@ -16,7 +17,7 @@ type PaymentRecord = {
   date: string;
 };
 
-const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick }) => {
+const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick, privacyMode }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'pending' | 'completed'>('all');
 
@@ -87,7 +88,7 @@ const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick }) => 
             </div>
             <div>
               <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Total Collected</p>
-              <h3 className="text-2xl font-bold text-slate-800 tracking-tight">NPR {metrics.totalCollected.toLocaleString()}</h3>
+              <h3 className="text-2xl font-bold text-slate-800 tracking-tight">NPR {privacyMode ? '••••••' : metrics.totalCollected.toLocaleString()}</h3>
             </div>
           </div>
           <p className="text-sm font-medium text-emerald-600 bg-emerald-50 inline-block px-3 py-1 rounded-lg">
@@ -103,7 +104,7 @@ const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick }) => 
             </div>
             <div>
               <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Total Pending</p>
-              <h3 className="text-2xl font-bold text-slate-800 tracking-tight">NPR {metrics.totalPending.toLocaleString()}</h3>
+              <h3 className="text-2xl font-bold text-slate-800 tracking-tight">NPR {privacyMode ? '••••••' : metrics.totalPending.toLocaleString()}</h3>
             </div>
           </div>
           <p className="text-sm font-medium text-amber-600 bg-amber-50 inline-block px-3 py-1 rounded-lg">
@@ -205,7 +206,7 @@ const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick }) => 
                       <div className="font-medium text-slate-700">{record.date}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-bold text-slate-800">NPR {record.amount.toLocaleString()}</div>
+                      <div className="font-bold text-slate-800">NPR {privacyMode ? '••••' : record.amount.toLocaleString()}</div>
                       {record.sub.payment.type === PaymentType.SPLIT && (
                         <div className="text-[10px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">Split Payment</div>
                       )}

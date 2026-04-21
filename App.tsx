@@ -8,7 +8,7 @@ import PaymentLogs from './components/PaymentLogs';
 import LoginPage from './components/LoginPage';
 import Settings from './components/Settings';
 import { useAuth } from './components/AuthContext';
-import { LayoutDashboard, Menu, X, Users, Settings as SettingsIcon, CreditCard, Loader2, LogOut } from 'lucide-react';
+import { LayoutDashboard, Menu, X, Users, Settings as SettingsIcon, CreditCard, Loader2, LogOut, Eye, EyeOff } from 'lucide-react';
 import { memberService } from './services/memberService';
 
 const ClarityIcon = ({ className }: { className?: string }) => (
@@ -30,6 +30,7 @@ const App = () => {
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'member-details' | 'payment-logs' | 'settings'>('dashboard');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [privacyMode, setPrivacyMode] = useState(false);
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -229,6 +230,14 @@ const App = () => {
                 <span>{tab.label}</span>
               </button>
             ))}
+            {/* Privacy Toggle */}
+            <button 
+              onClick={() => setPrivacyMode(!privacyMode)}
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 border-t border-slate-100 rounded-t-none"
+            >
+              {privacyMode ? <Eye className="w-5 h-5 text-emerald-500" /> : <EyeOff className="w-5 h-5" />}
+              <span>{privacyMode ? 'Show Amounts' : 'Privacy Mode'}</span>
+            </button>
           </div>
           {/* Sign Out Button */}
           <div className="p-4 border-t border-slate-100">
@@ -259,7 +268,7 @@ const App = () => {
               <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400 gap-4"><Loader2 className="w-8 h-8 animate-spin text-red-600" /><p>Loading data...</p></div>
             ) : (
               <>
-                  {activeTab === 'dashboard' && <Dashboard members={members} onMemberClick={handleMemberClick} onAddMember={handleOpenAddMember} />}
+                  {activeTab === 'dashboard' && <Dashboard members={members} onMemberClick={handleMemberClick} onAddMember={handleOpenAddMember} privacyMode={privacyMode} />}
                   {activeTab === 'members' && <MembersList members={members} onAddClick={handleOpenAddMember} onMemberClick={handleMemberClick} />}
                   {activeTab === 'member-details' && selectedMember && 
                      <MemberDetailView 
@@ -270,7 +279,7 @@ const App = () => {
                          onDeleteMember={handleDeleteMember}
                      />
                   }
-                  {activeTab === 'payment-logs' && <PaymentLogs members={members} onMemberClick={handleMemberClick} />}
+                  {activeTab === 'payment-logs' && <PaymentLogs members={members} onMemberClick={handleMemberClick} privacyMode={privacyMode} />}
                   {activeTab === 'settings' && <Settings />}
               </>
             )}

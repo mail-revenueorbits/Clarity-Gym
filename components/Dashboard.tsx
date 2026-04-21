@@ -7,9 +7,10 @@ interface DashboardProps {
   members: Member[];
   onMemberClick: (id: string) => void;
   onAddMember: () => void;
+  privacyMode: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMember }) => {
+const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMember, privacyMode }) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const currentNepaliDate = useMemo(() => makeDualDateValueFromAd(new Date()), []);
   const currentYear = currentNepaliDate?.bs.year || 2081;
@@ -160,7 +161,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
               <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Revenue This Month</span>
             </div>
             <p className="text-4xl font-black tracking-tight text-white mb-1">
-              NPR <span className="tabular-nums">{totalRevenueThisMonth.toLocaleString()}</span>
+              NPR <span className="tabular-nums">{privacyMode ? '••••••' : totalRevenueThisMonth.toLocaleString()}</span>
             </p>
             <p className="text-slate-500 text-xs font-medium">{selectedMonthLabel} · Collected</p>
           </div>
@@ -228,7 +229,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
                     </div>
                   </div>
                   <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg">
-                    NPR {amount.toLocaleString()}
+                    NPR {privacyMode ? '••••' : amount.toLocaleString()}
                   </span>
                 </div>
               );
