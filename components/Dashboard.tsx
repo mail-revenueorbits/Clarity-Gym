@@ -89,21 +89,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
   return (
     <div className="space-y-8 max-w-[1400px] mx-auto pb-12">
       
-      {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-red-600 to-red-900 rounded-[2rem] p-8 md:p-10 text-white relative overflow-hidden shadow-xl shadow-red-900/20">
-         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3"></div>
-         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-2">Welcome to Clarity Gym!</h1>
-              <p className="text-red-100 font-medium text-lg max-w-xl">You have acquired {newMembersThisMonth} new members and collected NPR {totalRevenueThisMonth.toLocaleString()} in revenue this month.</p>
-            </div>
-            <div className="flex items-center gap-4 shrink-0">
-              <button onClick={onAddMember} className="bg-white hover:bg-slate-50 text-red-600 px-6 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2">
-                 <Plus className="w-5 h-5" /> New Member
-              </button>
-            </div>
-         </div>
-      </div>
+
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
