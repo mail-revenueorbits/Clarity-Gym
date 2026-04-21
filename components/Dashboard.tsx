@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Member, Subscription, PaymentType } from '../types';
-import { TrendingUp, Users, AlertTriangle, UserPlus, CalendarDays, Activity, ChevronRight, MessageSquare, Plus } from 'lucide-react';
+import { TrendingUp, Users, UserPlus, CalendarDays, Activity, ChevronRight, PieChart, Plus, CreditCard, Award, Dumbbell } from 'lucide-react';
 import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 
 interface DashboardProps {
@@ -52,27 +52,6 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
      }).length;
   }, [members, currentBsPrefix]);
 
-  // Upcoming Expirations (Next 7 Days ONLY, strictly NO EXPIRED MEMBERS)
-  const expiringSoon = useMemo(() => {
-      const expiringList: { member: Member, sub: Subscription, daysLeft: number }[] = [];
-      members.forEach(m => {
-          if (m.isDeleted) return;
-          m.subscriptions.forEach(s => {
-              if (!s.isActive) return;
-              const endDate = new Date(s.endDate);
-              const todayDate = new Date();
-              const diffTime = endDate.getTime() - todayDate.getTime();
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              
-              // Only 0 to 7 days in the future
-              if (diffDays >= 0 && diffDays <= 7) {
-                 expiringList.push({ member: m, sub: s, daysLeft: diffDays });
-              }
-          });
-      });
-      return expiringList.sort((a, b) => a.daysLeft - b.daysLeft).slice(0, 5); // Limit to top 5
-  }, [members]);
-
   // Recent Signups (Last 5 members)
   const recentMembers = useMemo(() => {
       return [...members]
@@ -81,19 +60,45 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
         .slice(0, 5);
   }, [members]);
 
+  // Recent Payments (Last 5 subscriptions)
+  const recentPayments = useMemo(() => {
+      const allSubs: {member: Member, sub: Subscription}[] = [];
+      members.forEach(m => {
+          if (m.isDeleted) return;
+          m.subscriptions.forEach(s => allSubs.push({member: m, sub: s}));
+      });
+      return allSubs.sort((a, b) => new Date(b.sub.startDate).getTime() - new Date(a.sub.startDate).getTime()).slice(0, 5);
+  }, [members]);
+
+  const totalMembersCount = members.filter(m => !m.isDeleted).length;
+
+  // Access Level Distribution
+  const accessLevelStats = useMemo(() => {
+     const counts: Record<string, number> = { 'Gym': 0, 'Gym + Cardio': 0, 'Gym + Cardio + PT': 0 };
+     members.filter(m => !m.isDeleted).forEach(m => {
+        const lvl = m.accessLevel || 'Gym';
+        counts[lvl] = (counts[lvl] || 0) + 1;
+     });
+     return Object.entries(counts).map(([name, count]) => ({
+         name, 
+         count, 
+         percentage: totalMembersCount ? Math.round((count / totalMembersCount) * 100) : 0 
+     })).sort((a, b) => b.count - a.count);
+  }, [members, totalMembersCount]);
+
   return (
     <div className="space-y-8 max-w-[1400px] mx-auto pb-12">
       
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-[2rem] p-8 md:p-10 text-white relative overflow-hidden shadow-xl shadow-slate-900/10">
-         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-red-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3"></div>
+      <div className="bg-gradient-to-r from-red-600 to-red-900 rounded-[2rem] p-8 md:p-10 text-white relative overflow-hidden shadow-xl shadow-red-900/20">
+         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3"></div>
          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-2">Welcome to Clarity Gym! 👋</h1>
-              <p className="text-slate-300 font-medium text-lg max-w-xl">Here is what's happening at your gym today. You have {expiringSoon.length} members expiring in the next 7 days.</p>
+              <h1 className="text-3xl md:text-4xl font-bold mb-2">Welcome to Clarity Gym!</h1>
+              <p className="text-red-100 font-medium text-lg max-w-xl">You have acquired {newMembersThisMonth} new members and collected NPR {totalRevenueThisMonth.toLocaleString()} in revenue this month.</p>
             </div>
-            <div className="flex items-center gap-4">
-              <button onClick={onAddMember} className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-red-500/25 transition-all flex items-center gap-2">
+            <div className="flex items-center gap-4 shrink-0">
+              <button onClick={onAddMember} className="bg-white hover:bg-slate-50 text-red-600 px-6 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2">
                  <Plus className="w-5 h-5" /> New Member
               </button>
             </div>
@@ -102,10 +107,10 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm relative overflow-hidden group hover:border-emerald-200 transition-colors">
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors"></div>
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner">
               <TrendingUp className="w-6 h-6" />
             </div>
             <div>
@@ -115,10 +120,10 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm relative overflow-hidden group hover:border-purple-200 transition-colors">
           <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-colors"></div>
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shadow-inner">
               <UserPlus className="w-6 h-6" />
             </div>
             <div>
@@ -128,10 +133,10 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm relative overflow-hidden group hover:border-blue-200 transition-colors">
           <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors"></div>
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner">
               <Users className="w-6 h-6" />
             </div>
             <div>
@@ -141,101 +146,118 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm relative overflow-hidden group hover:border-slate-300 transition-colors">
           <div className="absolute top-0 right-0 w-24 h-24 bg-slate-500/5 rounded-full blur-2xl group-hover:bg-slate-500/10 transition-colors"></div>
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center shadow-inner">
               <CalendarDays className="w-6 h-6" />
             </div>
             <div>
               <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Total Members</p>
-              <h3 className="text-2xl font-bold text-slate-800 tracking-tight">{members.filter(m => !m.isDeleted).length}</h3>
+              <h3 className="text-2xl font-bold text-slate-800 tracking-tight">{totalMembersCount}</h3>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Expiring Soon Widget */}
-          <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col h-full">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center">
-                      <AlertTriangle className="w-6 h-6" />
-                   </div>
-                   <div>
-                      <h3 className="text-xl font-bold text-slate-800">Expiring Soon</h3>
-                      <p className="text-sm font-medium text-slate-500">Upcoming renewals in 7 days</p>
-                   </div>
-                </div>
-                {expiringSoon.length > 0 && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); alert('Preparing to send bulk reminders via Sparrow SMS...'); }}
-                    className="text-sm font-bold bg-slate-50 text-red-600 px-4 py-2 rounded-xl hover:bg-red-50 transition-colors"
-                  >
-                    Remind All
-                  </button>
-                )}
-             </div>
+          {/* Membership Distribution Widget */}
+          <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col h-full lg:col-span-1">
+              <div className="flex items-center gap-4 mb-8">
+                 <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-inner">
+                    <PieChart className="w-6 h-6" />
+                 </div>
+                 <div>
+                    <h3 className="text-xl font-bold text-slate-800">Membership Tiers</h3>
+                    <p className="text-sm font-medium text-slate-500">Distribution of packages</p>
+                 </div>
+              </div>
              
-             <div className="space-y-4 flex-1">
-                 {expiringSoon.length === 0 ? (
+              <div className="space-y-6 flex-1 flex flex-col justify-center">
+                 {accessLevelStats.map((stat, idx) => (
+                    <div key={idx}>
+                       <div className="flex justify-between items-end mb-2">
+                           <div className="flex items-center gap-2">
+                              {stat.name.includes('PT') ? <Award className="w-4 h-4 text-amber-500" /> : <Dumbbell className="w-4 h-4 text-slate-400" />}
+                              <span className="font-bold text-slate-700">{stat.name}</span>
+                           </div>
+                           <span className="font-bold text-slate-800">{stat.percentage}%</span>
+                       </div>
+                       <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                           <div 
+                              className={`h-3 rounded-full transition-all duration-1000 ${
+                                 stat.name.includes('PT') ? 'bg-amber-500' : stat.name.includes('Cardio') ? 'bg-indigo-500' : 'bg-blue-500'
+                              }`} 
+                              style={{ width: `${stat.percentage}%` }}
+                           ></div>
+                       </div>
+                       <p className="text-xs font-medium text-slate-400 mt-2 text-right">{stat.count} members</p>
+                    </div>
+                 ))}
+              </div>
+          </div>
+
+          {/* Recent Payments Widget */}
+          <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col h-full lg:col-span-1">
+              <div className="flex items-center gap-4 mb-8">
+                 <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner">
+                    <CreditCard className="w-6 h-6" />
+                 </div>
+                 <div>
+                    <h3 className="text-xl font-bold text-slate-800">Recent Payments</h3>
+                    <p className="text-sm font-medium text-slate-500">Latest transactions</p>
+                 </div>
+              </div>
+             
+              <div className="space-y-4 flex-1">
+                 {recentPayments.length === 0 ? (
                      <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center bg-slate-50 rounded-2xl border border-slate-200 border-dashed">
-                        <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mb-3">
-                           <AlertTriangle className="w-6 h-6 text-slate-300" />
-                        </div>
-                        <p className="text-slate-500 font-bold">All clear!</p>
-                        <p className="text-slate-400 text-sm font-medium">No memberships expiring in the next 7 days.</p>
+                        <p className="text-slate-500 font-medium">No recent payments.</p>
                      </div>
                  ) : (
-                     expiringSoon.map((item, idx) => (
-                         <div key={`exp-${idx}`} onClick={() => onMemberClick(item.member.id)} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl cursor-pointer hover:bg-white transition-all border border-transparent hover:border-slate-200 hover:shadow-sm group">
-                             <div className="flex items-center gap-4">
-                                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center font-bold text-slate-600 shadow-sm">
-                                    {item.member.name.charAt(0)}
+                     recentPayments.map((item, idx) => {
+                         const isFull = item.sub.payment.type === PaymentType.FULL;
+                         const amount = isFull ? item.sub.payment.totalAmount : (item.sub.payment.depositAmount || 0);
+                         
+                         return (
+                             <div key={`pay-${idx}`} onClick={() => onMemberClick(item.member.id)} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl cursor-pointer hover:bg-white transition-all border border-transparent hover:border-slate-200 hover:shadow-sm group">
+                                 <div className="flex items-center gap-4">
+                                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center font-bold text-slate-600 shadow-sm">
+                                        {item.member.name.charAt(0)}
+                                     </div>
+                                     <div>
+                                         <h4 className="font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">{item.member.name}</h4>
+                                         <p className="text-xs font-medium text-slate-500 mt-0.5">{item.sub.planName}</p>
+                                     </div>
                                  </div>
-                                 <div>
-                                     <h4 className="font-bold text-slate-800 group-hover:text-red-600 transition-colors">{item.member.name}</h4>
-                                     <p className="text-xs font-medium text-slate-500 mt-0.5">{item.member.phone}</p>
+                                 <div className="flex items-center gap-3">
+                                     <div className="text-right">
+                                         <span className="px-3 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-700">
+                                             NPR {amount.toLocaleString()}
+                                         </span>
+                                     </div>
                                  </div>
                              </div>
-                             <div className="flex items-center gap-4">
-                                 <div className="text-right">
-                                     <span className="px-3 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-700">
-                                         {item.daysLeft === 0 ? 'Expires Today' : `In ${item.daysLeft} days`}
-                                     </span>
-                                     <p className="text-[10px] text-slate-400 font-bold tracking-wider mt-1.5 uppercase">{item.sub.planName}</p>
-                                 </div>
-                                 <button 
-                                   onClick={(e) => { e.stopPropagation(); alert(`Sending reminder to ${item.member.name}...`); }}
-                                   className="p-2.5 bg-white text-slate-400 hover:text-red-600 rounded-xl shadow-sm transition-colors opacity-0 group-hover:opacity-100"
-                                   title="Send Reminder"
-                                 >
-                                   <MessageSquare className="w-4 h-4" />
-                                 </button>
-                             </div>
-                         </div>
-                     ))
+                         );
+                     })
                  )}
-             </div>
+              </div>
           </div>
 
           {/* Recent Signups Widget */}
-          <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col h-full">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                      <Activity className="w-6 h-6" />
-                   </div>
-                   <div>
-                      <h3 className="text-xl font-bold text-slate-800">Recent Signups</h3>
-                      <p className="text-sm font-medium text-slate-500">Latest members joining the gym</p>
-                   </div>
-                </div>
-             </div>
+          <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col h-full lg:col-span-1">
+              <div className="flex items-center gap-4 mb-8">
+                 <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner">
+                    <Activity className="w-6 h-6" />
+                 </div>
+                 <div>
+                    <h3 className="text-xl font-bold text-slate-800">Recent Signups</h3>
+                    <p className="text-sm font-medium text-slate-500">Latest members joining</p>
+                 </div>
+              </div>
              
-             <div className="space-y-4 flex-1">
+              <div className="space-y-4 flex-1">
                  {recentMembers.length === 0 ? (
                      <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center bg-slate-50 rounded-2xl border border-slate-200 border-dashed">
                         <p className="text-slate-500 font-medium">No recent signups.</p>
@@ -257,14 +279,12 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
                                      <span className="px-3 py-1 rounded-lg text-xs font-bold bg-slate-200 text-slate-700">
                                          {member.joinedDate}
                                      </span>
-                                     <p className="text-[10px] text-slate-400 font-bold tracking-wider mt-1.5 uppercase">{member.accessLevel}</p>
                                  </div>
-                                 <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-600 transition-colors" />
                              </div>
                          </div>
                      ))
                  )}
-             </div>
+              </div>
           </div>
 
       </div>
