@@ -61,8 +61,14 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
              if (subVal?.formatted.bs.substring(0, 7) !== selectedMonthPrefix) return acc;
 
              let paid = 0;
-             if (s.payment.remainingPaid) paid = s.payment.totalAmount;
-             else if (s.payment.type === PaymentType.SPLIT && s.payment.depositPaid) paid = s.payment.depositAmount || 0;
+             if (s.payment.type === PaymentType.FULL) {
+                 // Full payment: count total if either flag is true
+                 if (s.payment.depositPaid || s.payment.remainingPaid) paid = s.payment.totalAmount;
+             } else {
+                 // Split payment: count deposit + remaining separately
+                 if (s.payment.depositPaid) paid += s.payment.depositAmount || 0;
+                 if (s.payment.remainingPaid) paid += (s.payment.totalAmount - (s.payment.depositAmount || 0));
+             }
              return acc + paid;
         }, 0);
         return total + revenue;
@@ -121,7 +127,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
              <select 
                 value={selectedMonthPrefix}
                 onChange={(e) => setSelectedMonthPrefix(e.target.value)}
-                className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer shadow-sm"
+                className="px-4 py-2.5 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer shadow-sm appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_0.75rem_center]"
              >
                 {monthOptions.map(opt => (
                    <option key={opt.value} value={opt.value}>{opt.label}</option>
