@@ -114,7 +114,7 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
 
         {/* Header */}
-        <div className="grid grid-cols-[1fr_120px_100px_36px] md:grid-cols-[1fr_140px_120px_120px_100px_130px_36px] items-center px-5 py-3 border-b border-slate-100 bg-slate-50/80">
+        <div className="grid grid-cols-[1fr_120px_100px_36px] md:grid-cols-[1fr_140px_120px_120px_100px_130px_36px] items-center px-5 py-3 border-b border-slate-200 bg-slate-200">
           <button onClick={() => handleSort('name')} className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors">
             Member <SortIcon col="name" />
           </button>
@@ -148,7 +148,7 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
                 <div
                   key={member.id}
                   onClick={() => onMemberClick(member.id)}
-                  className={`grid grid-cols-[1fr_120px_100px_36px] md:grid-cols-[1fr_140px_120px_120px_100px_130px_36px] items-center px-5 py-3.5 cursor-pointer transition-colors group ${isEven ? 'bg-white' : 'bg-slate-100/80'} hover:bg-red-50/50`}
+                  className={`grid grid-cols-[1fr_120px_100px_36px] md:grid-cols-[1fr_140px_120px_120px_100px_130px_36px] items-center px-5 py-3.5 cursor-pointer transition-colors group ${isEven ? 'bg-white' : 'bg-gray-100'} hover:bg-red-50`}
                 >
                   {/* Member */}
                   <div className="flex items-center gap-3 overflow-hidden min-w-0">
