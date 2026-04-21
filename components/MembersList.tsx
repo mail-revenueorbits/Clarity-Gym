@@ -24,6 +24,12 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
     return member.subscriptions.some(s => s.isActive && s.endDate >= todayStr) ? 'active' : 'inactive';
   };
 
+  const getActiveEndDate = (member: Member) => {
+    const subs = member.subscriptions.filter(s => s.isActive && s.endDate >= todayStr);
+    if (subs.length === 0) return null;
+    return subs.sort((a, b) => b.endDate.localeCompare(a.endDate))[0].endDate;
+  };
+
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir('asc'); }
@@ -60,7 +66,7 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
   }, [members, searchTerm, filterStr, sortKey, sortDir]);
 
   return (
-    <div className="max-w-[1000px] mx-auto pb-12 space-y-5">
+    <div className="max-w-[1400px] mx-auto pb-12 space-y-5">
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -108,19 +114,21 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
 
         {/* Header */}
-        <div className="grid grid-cols-[1fr_160px_100px_36px] md:grid-cols-[1fr_140px_160px_100px_36px] items-center px-5 py-3 border-b border-slate-100 bg-slate-50/80">
+        <div className="grid grid-cols-[1fr_120px_100px_36px] md:grid-cols-[1fr_140px_120px_120px_100px_130px_36px] items-center px-5 py-3 border-b border-slate-100 bg-slate-50/80">
           <button onClick={() => handleSort('name')} className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors">
             Member <SortIcon col="name" />
           </button>
           <button onClick={() => handleSort('accessLevel')} className="hidden md:flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors">
             Plan <SortIcon col="accessLevel" />
           </button>
-          <button onClick={() => handleSort('joinedDate')} className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors">
+          <button onClick={() => handleSort('joinedDate')} className="hidden md:flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors">
             Joined <SortIcon col="joinedDate" />
           </button>
+          <span className="hidden md:block text-[11px] font-bold uppercase tracking-widest text-slate-400">Expires</span>
           <button onClick={() => handleSort('status')} className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors">
             Status <SortIcon col="status" />
           </button>
+          <span className="hidden md:block text-[11px] font-bold uppercase tracking-widest text-slate-400">Phone</span>
           <div />
         </div>
 
@@ -131,40 +139,45 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
             <p className="text-slate-400 text-sm mt-1">Try a different search or filter.</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-50">
-            {currentMembers.map(member => {
+          <div>
+            {currentMembers.map((member, idx) => {
               const isActive = getMemberStatus(member) === 'active';
+              const endDate = getActiveEndDate(member);
+              const isEven = idx % 2 === 0;
               return (
                 <div
                   key={member.id}
                   onClick={() => onMemberClick(member.id)}
-                  className="grid grid-cols-[1fr_160px_100px_36px] md:grid-cols-[1fr_140px_160px_100px_36px] items-center px-5 py-4 hover:bg-slate-50/70 cursor-pointer transition-colors group"
+                  className={`grid grid-cols-[1fr_120px_100px_36px] md:grid-cols-[1fr_140px_120px_120px_100px_130px_36px] items-center px-5 py-3.5 cursor-pointer transition-colors group ${isEven ? 'bg-white' : 'bg-slate-50/60'} hover:bg-red-50/40`}
                 >
                   {/* Member */}
                   <div className="flex items-center gap-3 overflow-hidden min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0 overflow-hidden ring-2 ring-white">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0 overflow-hidden">
                       {member.thumbnail
                         ? <img src={member.thumbnail} alt="" className="w-full h-full object-cover" />
                         : member.name.charAt(0)
                       }
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-800 group-hover:text-red-600 transition-colors truncate">{member.name}</p>
-                      <p className="text-xs text-slate-400 font-medium truncate">{member.phone}</p>
-                    </div>
+                    <p className="text-sm font-semibold text-slate-800 group-hover:text-red-600 transition-colors truncate">{member.name}</p>
                   </div>
 
                   {/* Plan */}
                   <span className="hidden md:block text-xs font-medium text-slate-500 truncate">{member.accessLevel || '—'}</span>
 
                   {/* Joined */}
-                  <span className="text-xs text-slate-400 font-medium">{member.joinedDate}</span>
+                  <span className="hidden md:block text-xs text-slate-400 font-medium">{member.joinedDate}</span>
+
+                  {/* Expires */}
+                  <span className="hidden md:block text-xs text-slate-400 font-medium">{endDate || <span className="text-slate-300">—</span>}</span>
 
                   {/* Status */}
                   <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${isActive ? 'text-emerald-600' : 'text-red-500'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-400'}`} />
                     {isActive ? 'Active' : 'Inactive'}
                   </span>
+
+                  {/* Phone */}
+                  <span className="hidden md:block text-xs text-slate-400 font-medium">{member.phone}</span>
 
                   {/* Arrow */}
                   <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors justify-self-end" />
