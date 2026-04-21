@@ -58,7 +58,8 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
         if (m.isDeleted) return total;
         const revenue = m.subscriptions.reduce((acc, s) => {
              const subVal = makeDualDateValueFromAd(new Date(s.startDate));
-             if (subVal?.formatted.bs.substring(0, 7) !== selectedMonthPrefix) return acc;
+             const subPrefix = subVal ? `${subVal.bs.year}-${subVal.bs.month.toString().padStart(2, '0')}` : '';
+             if (subPrefix !== selectedMonthPrefix) return acc;
 
              let paid = 0;
              if (s.payment.type === PaymentType.FULL) {
@@ -81,7 +82,8 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMemb
      return members.filter(m => {
         if (m.isDeleted) return false;
         const joinedVal = makeDualDateValueFromAd(new Date(m.joinedDate));
-        return joinedVal?.formatted.bs.substring(0, 7) === selectedMonthPrefix;
+        const joinedPrefix = joinedVal ? `${joinedVal.bs.year}-${joinedVal.bs.month.toString().padStart(2, '0')}` : '';
+        return joinedPrefix === selectedMonthPrefix;
      }).length;
   }, [members, selectedMonthPrefix]);
 
