@@ -259,7 +259,7 @@ const App = () => {
               <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400 gap-4"><Loader2 className="w-8 h-8 animate-spin text-red-600" /><p>Loading data...</p></div>
             ) : (
               <>
-                  {activeTab === 'dashboard' && <Dashboard members={members} onMemberClick={handleMemberClick} />}
+                  {activeTab === 'dashboard' && <Dashboard members={members} onMemberClick={handleMemberClick} onAddMember={handleOpenAddMember} />}
                   {activeTab === 'members' && <MembersList members={members} onAddClick={handleOpenAddMember} onMemberClick={handleMemberClick} />}
                   {activeTab === 'member-details' && selectedMember && 
                      <MemberDetailView 
