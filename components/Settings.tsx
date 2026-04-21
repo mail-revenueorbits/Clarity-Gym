@@ -81,8 +81,14 @@ const Settings: React.FC = () => {
   if (!matrix) return null;
 
   const categories = Object.keys(matrix);
-  // Get all unique durations from the first category (assuming all categories have same durations)
-  const durations = Object.keys(matrix[categories[0]] || {});
+  // Enforce a specific duration order: 1 Month first, 1 Year last
+  const durationOrder = ["1 Month", "3 Months", "6 Months", "1 Year"];
+  const durations = Object.keys(matrix[categories[0]] || {}).sort((a, b) => {
+    const idxA = durationOrder.indexOf(a);
+    const idxB = durationOrder.indexOf(b);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    return a.localeCompare(b);
+  });
 
   return (
     <div className="max-w-[1400px] mx-auto pb-12 space-y-6">
