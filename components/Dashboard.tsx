@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Member, Subscription, PaymentType } from '../types';
-import { TrendingUp, Users, AlertTriangle, UserMinus, ShieldAlert, CreditCard, MessageSquare } from 'lucide-react';
+import { TrendingUp, Users, AlertTriangle, UserMinus, ShieldAlert, CreditCard, MessageSquare, UserPlus } from 'lucide-react';
+import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 
 interface DashboardProps {
   members: Member[];
@@ -9,9 +10,8 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick }) => {
   const todayStr = new Date().toISOString().split('T')[0];
-  const currentDate = new Date();
-  const currentMonthIdx = currentDate.getMonth();
-  const currentYear = currentDate.getFullYear();
+  const currentNepaliDate = makeDualDateValueFromAd(new Date());
+  const currentBsPrefix = currentNepaliDate?.formatted.bs.substring(0, 7) || ''; // e.g. "2081-01"
 
   // Active Subscriptions Calculation
   const activeMembersThisMonth = useMemo(() => {
@@ -24,11 +24,15 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick }) => {
     );
   }, [members, todayStr]);
 
-  // Revenue calculation — total collected from all subscriptions
+  // Revenue calculation — total collected from subscriptions started this Nepali Month
   const totalRevenueThisMonth = useMemo(() => {
+    if (!currentBsPrefix) return 0;
     return members.reduce((total, m) => {
         if (m.isDeleted) return total;
         const revenue = m.subscriptions.reduce((acc, s) => {
+             const subVal = makeDualDateValueFromAd(new Date(s.startDate));
+             if (subVal?.formatted.bs.substring(0, 7) !== currentBsPrefix) return acc;
+
              let paid = 0;
              if (s.payment.remainingPaid) paid = s.payment.totalAmount;
              else if (s.payment.type === PaymentType.SPLIT && s.payment.depositPaid) paid = s.payment.depositAmount || 0;
@@ -36,7 +40,17 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick }) => {
         }, 0);
         return total + revenue;
     }, 0);
-  }, [members]);
+  }, [members, currentBsPrefix]);
+
+  // New Members this Nepali Month
+  const newMembersThisMonth = useMemo(() => {
+     if (!currentBsPrefix) return 0;
+     return members.filter(m => {
+        if (m.isDeleted) return false;
+        const joinedVal = makeDualDateValueFromAd(new Date(m.joinedDate));
+        return joinedVal?.formatted.bs.substring(0, 7) === currentBsPrefix;
+     }).length;
+  }, [members, currentBsPrefix]);
 
   // Expiring soon or recently expired
   const attentionNeeded = useMemo(() => {
@@ -76,13 +90,20 @@ const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick }) => {
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-12">
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard 
           label="Total Revenue" 
           value={`NPR ${totalRevenueThisMonth.toLocaleString()}`} 
-          subtitle="Total Collected"
+          subtitle="Collected this Nepali month"
           icon={TrendingUp} 
           colorClass="bg-emerald-500 text-emerald-600" 
+        />
+        <StatCard 
+          label="New Members" 
+          value={newMembersThisMonth} 
+          subtitle="Joined this Nepali month"
+          icon={UserPlus} 
+          colorClass="bg-purple-500 text-purple-600" 
         />
         <StatCard 
           label="Active Members" 
