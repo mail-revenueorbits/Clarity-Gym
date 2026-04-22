@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Member } from '../types';
 import { Search, UserPlus, Filter, ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight } from 'lucide-react';
+import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 
 interface MembersListProps {
   members: Member[];
@@ -205,8 +206,8 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
                       <p className="text-sm font-semibold text-slate-800 group-hover:text-red-600 transition-colors truncate">{member.name}</p>
                     </div>
                     <span className="text-xs font-medium text-slate-500 truncate">{member.accessLevel || '—'}</span>
-                    <span className="text-xs text-slate-400 font-medium">{member.joinedDate}</span>
-                    <span className="text-xs text-slate-400 font-medium">{endDate || <span className="text-slate-300">—</span>}</span>
+                    <span className="text-xs text-slate-400 font-medium">{member.joinedDate ? makeDualDateValueFromAd(new Date(member.joinedDate)).formatted.bs : '—'}</span>
+                    <span className="text-xs text-slate-400 font-medium">{endDate ? makeDualDateValueFromAd(new Date(endDate)).formatted.bs : <span className="text-slate-300">—</span>}</span>
                     <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${statusColor}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${statusBg}`} />
                       {statusText}

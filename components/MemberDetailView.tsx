@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Member, Subscription, PaymentType } from '../types';
 import { ArrowLeft, User, Phone, MapPin, Calendar, HeartPulse, Edit2, Plus, CreditCard, Clock, CheckCircle2, Trash2, Bell, MessageSquare } from 'lucide-react';
+import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 import SubscriptionFormModal from './SubscriptionFormModal';
 import { LogEntry } from './Notifications';
 
@@ -91,8 +92,8 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
                  {member.gender && <div className="flex items-center gap-3 text-slate-600"><User className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">{member.gender}</span></div>}
                  <div className="flex items-center gap-3 text-slate-600"><Phone className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">{member.phone}</span></div>
                  {member.email && <div className="flex items-center gap-3 text-slate-600"><User className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium truncate">{member.email}</span></div>}
-                 {member.dob && <div className="flex items-center gap-3 text-slate-600"><Calendar className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">DOB: {member.dob}</span></div>}
-                 <div className="flex items-center gap-3 text-slate-600"><Calendar className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">Joined {member.joinedDate}</span></div>
+                 {member.dob && <div className="flex items-center gap-3 text-slate-600"><Calendar className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">DOB: {makeDualDateValueFromAd(new Date(member.dob)).formatted.bs}</span></div>}
+                 <div className="flex items-center gap-3 text-slate-600"><Calendar className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">Joined {member.joinedDate ? makeDualDateValueFromAd(new Date(member.joinedDate)).formatted.bs : '—'}</span></div>
                  {member.accessLevel && <div className="flex items-center gap-3"><span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold uppercase">{member.accessLevel}</span></div>}
               </div>
           </div>
@@ -156,7 +157,7 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
                                   <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 mt-3">
                                      <div className="flex items-center gap-2 text-slate-600 text-sm font-medium">
                                         <Clock className="w-4 h-4 text-slate-400" />
-                                        <span>{sub.startDate} <span className="text-slate-400 mx-1">to</span> {sub.endDate}</span>
+                                        <span>{sub.startDate ? makeDualDateValueFromAd(new Date(sub.startDate)).formatted.bs : '—'} <span className="text-slate-400 mx-1">to</span> {sub.endDate ? makeDualDateValueFromAd(new Date(sub.endDate)).formatted.bs : '—'}</span>
                                      </div>
                                   </div>
                                   {sub.notes && <p className="mt-3 text-sm text-slate-500 bg-slate-50 p-2 rounded-lg italic">"{sub.notes}"</p>}

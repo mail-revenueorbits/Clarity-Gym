@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Member, Subscription, PaymentType, Expense, InventorySale } from '../types';
 import { Users, UserPlus, CreditCard, AlertCircle, CalendarDays, Activity, MessageSquare, CheckCircle2, AlertTriangle, IndianRupee } from 'lucide-react';
+import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 
 interface DashboardProps {
   members: Member[];
@@ -230,7 +231,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, expenses, inventorySales
                       </div>
                       <div>
                         <p className="text-sm font-bold text-slate-800 group-hover:text-amber-600 transition-colors">{item.member.name}</p>
-                        <p className="text-xs text-slate-500 font-medium">Ends on {item.sub.endDate}</p>
+                        <p className="text-xs text-slate-500 font-medium">Ends on {item.sub.endDate ? makeDualDateValueFromAd(new Date(item.sub.endDate)).formatted.bs : '—'}</p>
                       </div>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); alert(`Sent renewal reminder to ${item.member.name}`); }} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Send SMS Reminder">
@@ -262,7 +263,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, expenses, inventorySales
                       </div>
                       <div>
                         <p className="text-sm font-bold text-slate-800 group-hover:text-slate-600 transition-colors">{item.member.name}</p>
-                        <p className="text-xs text-red-500 font-medium">Ended {item.sub.endDate}</p>
+                        <p className="text-xs text-red-500 font-medium">Ended {item.sub.endDate ? makeDualDateValueFromAd(new Date(item.sub.endDate)).formatted.bs : '—'}</p>
                       </div>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); alert(`Sent win-back SMS to ${item.member.name}`); }} className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors" title="Send SMS Win-back">

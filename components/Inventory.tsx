@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { InventoryItem, InventorySale, PaymentMethod } from '../types';
 import { PackageOpen, Plus, Search, Filter, ShoppingCart, CalendarDays, Edit2, Trash2 } from 'lucide-react';
+import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 
 interface InventoryProps {
   items: InventoryItem[];
@@ -184,7 +185,7 @@ const Inventory: React.FC<InventoryProps> = ({ items, sales, onAddItem, onUpdate
                   const item = items.find(i => i.id === sale.itemId);
                   return (
                     <tr key={sale.id} className="hover:bg-slate-50/50">
-                      <td className="py-4 font-medium text-slate-600 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-slate-400"/> {sale.date}</td>
+                      <td className="py-4 font-medium text-slate-600 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-slate-400"/> {sale.date ? makeDualDateValueFromAd(new Date(sale.date)).formatted.bs : '—'}</td>
                       <td className="py-4 font-bold text-slate-800">{item?.name || 'Unknown Item'}</td>
                       <td className="py-4 text-right font-medium text-slate-600">{sale.quantity}</td>
                       <td className="py-4 text-right font-bold text-emerald-600">NPR {privacyMode ? '••••' : sale.totalAmount.toLocaleString()}</td>

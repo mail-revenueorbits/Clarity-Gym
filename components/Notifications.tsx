@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Member } from '../types';
 import { Bell, Send, MessageSquare, Clock, CheckCircle2, Users, Search, Filter, ChevronLeft, ChevronRight, CheckSquare, Square, X, Eye } from 'lucide-react';
+import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 
 interface NotificationsProps {
   members: Member[];
@@ -464,7 +465,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members, logs, onAddLog, 
                                   {log.status}
                                 </span>
                               </div>
-                              <span className="text-xs text-slate-400">{new Date(log.timestamp).toLocaleString()}</span>
+                              <span className="text-xs text-slate-400">{makeDualDateValueFromAd(new Date(log.timestamp)).formatted.bs}</span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span className={`px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded-md border ${
@@ -539,7 +540,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members, logs, onAddLog, 
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-800 capitalize">{selectedLog.type}</h2>
-                  <p className="text-xs text-slate-500 font-medium">{new Date(selectedLog.timestamp).toLocaleString()}</p>
+                  <p className="text-xs text-slate-500 font-medium">{makeDualDateValueFromAd(new Date(selectedLog.timestamp)).formatted.bs}</p>
                 </div>
               </div>
               <button onClick={() => setSelectedLog(null)} className="p-2 hover:bg-slate-200 rounded-full text-slate-400 transition-colors">
