@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Member, Subscription, Expense, InventoryItem, InventorySale } from './types';
 import Dashboard from './components/Dashboard';
 import MembersList from './components/MembersList';
@@ -39,6 +39,39 @@ const App = () => {
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // --- History-aware navigation ---
+  type TabId = typeof activeTab;
+
+  const navigateTo = useCallback((tab: TabId, memberId?: string | null) => {
+    setActiveTab(tab);
+    if (tab === 'member-details' && memberId) {
+      setSelectedMemberId(memberId);
+    }
+    setIsMobileMenuOpen(false);
+    window.history.pushState({ tab, memberId: memberId || null }, '', '');
+  }, []);
+
+  // Listen for browser back / swipe-back
+  useEffect(() => {
+    // Push initial state so we have something to go back to
+    window.history.replaceState({ tab: 'dashboard', memberId: null }, '', '');
+
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state && e.state.tab) {
+        setActiveTab(e.state.tab);
+        if (e.state.memberId) {
+          setSelectedMemberId(e.state.memberId);
+        }
+      } else {
+        // No state — go to dashboard
+        setActiveTab('dashboard');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const [members, setMembers] = useState<Member[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -161,7 +194,7 @@ const App = () => {
   const handleDeleteMember = async (id: string) => {
     setMembers(prev => prev.filter(m => m.id !== id));
     if (activeTab === 'member-details' && selectedMemberId === id) {
-      setActiveTab('members');
+      navigateTo('members');
       setSelectedMemberId(null);
     }
     try {
@@ -191,8 +224,7 @@ const App = () => {
   };
 
   const handleMemberClick = (id: string) => {
-    setSelectedMemberId(id);
-    setActiveTab('member-details');
+    navigateTo('member-details', id);
   };
 
   const getHeaderTitle = () => {
@@ -258,7 +290,7 @@ const App = () => {
             ].map(tab => (
               <button 
                 key={tab.id}
-                onClick={() => { setActiveTab(tab.id as any); setIsMobileMenuOpen(false); }}
+                onClick={() => navigateTo(tab.id as TabId)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm ${
                   activeTab === tab.id || (activeTab === 'member-details' && tab.id === 'members') 
                   ? 'bg-red-50 text-red-600 shadow-sm' 
@@ -305,7 +337,7 @@ const App = () => {
                   {activeTab === 'member-details' && selectedMember && 
                      <MemberDetailView 
                          member={selectedMember} 
-                         onBack={() => setActiveTab('members')} 
+                         onBack={() => window.history.back()} 
                          onEditMember={handleOpenEditMember} 
                          onSaveSubscription={handleSaveSubscription}
                          onDeleteMember={handleDeleteMember}
