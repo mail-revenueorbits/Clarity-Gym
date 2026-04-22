@@ -21,6 +21,7 @@ type PaymentRecord = {
   type: 'pending' | 'completed';
   amount: number;
   date: string;
+  bsDate: string;
 };
 
 const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick, privacyMode }) => {
@@ -57,7 +58,6 @@ const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick, priva
           type: isPending ? 'pending' : 'completed',
           amount: amount,
           date: s.startDate,
-          // @ts-ignore (adding bsDate for easier display)
           bsDate: dualDate.formatted.bs
         });
       });
@@ -72,7 +72,6 @@ const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick, priva
                             record.member.phone.includes(searchTerm);
       const matchesType = filterType === 'all' || record.type === filterType;
       
-      // @ts-ignore
       const [year, month] = record.bsDate.split('/').map(Number);
       const matchesMonth = month === selectedMonth && year === selectedYear;
 
@@ -241,7 +240,7 @@ const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick, priva
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-800 truncate">{record.member.name}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">{record.sub.planName} · {/* @ts-ignore */}{record.bsDate}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">{record.sub.planName} · {record.bsDate}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
