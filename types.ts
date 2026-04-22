@@ -3,12 +3,41 @@ export enum PaymentType {
   SPLIT = 'Split'
 }
 
+export type PaymentMethod = 'Cash' | 'Fonepay' | 'eSewa' | 'Bank Transfer';
+
 export interface PaymentDetails {
   type: PaymentType;
   totalAmount: number;
   depositAmount?: number;
   depositPaid: boolean;
   remainingPaid: boolean;
+  method?: PaymentMethod;
+}
+
+export interface Expense {
+  id: string;
+  title: string;
+  category: 'Rent' | 'Salary' | 'Maintenance' | 'Supplies' | 'Utilities' | 'Other';
+  amount: number;
+  date: string;
+  notes: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  category: 'Supplement' | 'Merchandise' | 'Beverage' | 'Other';
+  quantity: number;
+  price: number;
+}
+
+export interface InventorySale {
+  id: string;
+  itemId: string;
+  quantity: number;
+  totalAmount: number;
+  date: string;
+  method: PaymentMethod;
 }
 
 export interface Subscription {

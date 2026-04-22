@@ -20,14 +20,19 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
   const todayStr = new Date().toISOString().split('T')[0];
 
   const getMemberStatus = (member: Member) => {
-    if (member.subscriptions.length === 0) return 'inactive';
+    if (member.subscriptions.length === 0) return 'pending';
     return member.subscriptions.some(s => s.isActive && s.endDate >= todayStr) ? 'active' : 'inactive';
   };
 
   const getActiveEndDate = (member: Member) => {
-    const subs = member.subscriptions.filter(s => s.isActive && s.endDate >= todayStr);
-    if (subs.length === 0) return null;
-    return subs.sort((a, b) => b.endDate.localeCompare(a.endDate))[0].endDate;
+    const activeSubs = member.subscriptions.filter(s => s.isActive && s.endDate >= todayStr);
+    if (activeSubs.length > 0) {
+      return activeSubs.sort((a, b) => b.endDate.localeCompare(a.endDate))[0].endDate;
+    }
+    if (member.subscriptions.length > 0) {
+      return member.subscriptions.sort((a, b) => b.endDate.localeCompare(a.endDate))[0].endDate;
+    }
+    return null;
   };
 
   const handleSort = (key: SortKey) => {
@@ -71,16 +76,16 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Members</h1>
-          <p className="text-slate-400 text-sm font-medium mt-1">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Members</h1>
+          <p className="text-slate-400 text-xs md:text-sm font-medium mt-0.5">
             <span className="text-slate-600 font-bold">{currentMembers.length}</span> members found
           </p>
         </div>
         <button
           onClick={onAddClick}
-          className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all shadow-sm text-sm"
+          className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all shadow-sm text-xs md:text-sm"
         >
-          <UserPlus className="w-4 h-4" /> Add Member
+          <UserPlus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span> Member
         </button>
       </div>
 
@@ -113,22 +118,22 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
       {/* Table */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
 
-        {/* Header */}
-        <div className="grid grid-cols-[1fr_120px_100px_36px] md:grid-cols-[1fr_140px_120px_120px_100px_130px_36px] items-center px-5 py-3 border-b border-slate-200 bg-slate-200">
+        {/* Header - Desktop only */}
+        <div className="hidden md:grid grid-cols-[1fr_140px_120px_120px_100px_130px_36px] items-center px-5 py-3 border-b border-slate-200 bg-slate-200">
           <button onClick={() => handleSort('name')} className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors">
             Member <SortIcon col="name" />
           </button>
-          <button onClick={() => handleSort('accessLevel')} className="hidden md:flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors">
+          <button onClick={() => handleSort('accessLevel')} className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors">
             Plan <SortIcon col="accessLevel" />
           </button>
-          <button onClick={() => handleSort('joinedDate')} className="hidden md:flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors">
+          <button onClick={() => handleSort('joinedDate')} className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors">
             Joined <SortIcon col="joinedDate" />
           </button>
-          <span className="hidden md:block text-[11px] font-bold uppercase tracking-widest text-slate-400">Expires</span>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Expires</span>
           <button onClick={() => handleSort('status')} className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors">
             Status <SortIcon col="status" />
           </button>
-          <span className="hidden md:block text-[11px] font-bold uppercase tracking-widest text-slate-400">Phone</span>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Phone</span>
           <div />
         </div>
 
@@ -141,46 +146,74 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
         ) : (
           <div>
             {currentMembers.map((member, idx) => {
-              const isActive = getMemberStatus(member) === 'active';
+              const status = getMemberStatus(member);
               const endDate = getActiveEndDate(member);
               const isEven = idx % 2 === 0;
+              
+              let statusColor = 'text-red-500';
+              let statusBg = 'bg-red-400';
+              let statusText = 'Inactive';
+              
+              if (status === 'active') {
+                statusColor = 'text-emerald-600';
+                statusBg = 'bg-emerald-500';
+                statusText = 'Active';
+              } else if (status === 'pending') {
+                statusColor = 'text-amber-500';
+                statusBg = 'bg-amber-400';
+                statusText = 'Pending';
+              }
+
               return (
                 <div
                   key={member.id}
                   onClick={() => onMemberClick(member.id)}
-                  className={`grid grid-cols-[1fr_120px_100px_36px] md:grid-cols-[1fr_140px_120px_120px_100px_130px_36px] items-center px-5 py-3.5 cursor-pointer transition-colors group ${isEven ? 'bg-white' : 'bg-gray-100'} hover:bg-red-50`}
+                  className={`cursor-pointer transition-colors group ${isEven ? 'bg-white' : 'bg-gray-100'} hover:bg-red-50`}
                 >
-                  {/* Member */}
-                  <div className="flex items-center gap-3 overflow-hidden min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0 overflow-hidden">
-                      {member.thumbnail
-                        ? <img src={member.thumbnail} alt="" className="w-full h-full object-cover" />
-                        : member.name.charAt(0)
-                      }
+                  {/* Mobile card layout */}
+                  <div className="md:hidden flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0 overflow-hidden">
+                        {member.thumbnail
+                          ? <img src={member.thumbnail} alt="" className="w-full h-full object-cover" />
+                          : member.name.charAt(0)
+                        }
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 group-hover:text-red-600 transition-colors truncate">{member.name}</p>
+                        <p className="text-[11px] text-slate-400 font-medium">{member.phone}</p>
+                      </div>
                     </div>
-                    <p className="text-sm font-semibold text-slate-800 group-hover:text-red-600 transition-colors truncate">{member.name}</p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${statusColor}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${statusBg}`} />
+                        {statusText}
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-slate-300" />
+                    </div>
                   </div>
 
-                  {/* Plan */}
-                  <span className="hidden md:block text-xs font-medium text-slate-500 truncate">{member.accessLevel || '—'}</span>
-
-                  {/* Joined */}
-                  <span className="hidden md:block text-xs text-slate-400 font-medium">{member.joinedDate}</span>
-
-                  {/* Expires */}
-                  <span className="hidden md:block text-xs text-slate-400 font-medium">{endDate || <span className="text-slate-300">—</span>}</span>
-
-                  {/* Status */}
-                  <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${isActive ? 'text-emerald-600' : 'text-red-500'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-400'}`} />
-                    {isActive ? 'Active' : 'Inactive'}
-                  </span>
-
-                  {/* Phone */}
-                  <span className="hidden md:block text-xs text-slate-400 font-medium">{member.phone}</span>
-
-                  {/* Arrow */}
-                  <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors justify-self-end" />
+                  {/* Desktop grid layout */}
+                  <div className="hidden md:grid grid-cols-[1fr_140px_120px_120px_100px_130px_36px] items-center px-5 py-3.5">
+                    <div className="flex items-center gap-3 overflow-hidden min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0 overflow-hidden">
+                        {member.thumbnail
+                          ? <img src={member.thumbnail} alt="" className="w-full h-full object-cover" />
+                          : member.name.charAt(0)
+                        }
+                      </div>
+                      <p className="text-sm font-semibold text-slate-800 group-hover:text-red-600 transition-colors truncate">{member.name}</p>
+                    </div>
+                    <span className="text-xs font-medium text-slate-500 truncate">{member.accessLevel || '—'}</span>
+                    <span className="text-xs text-slate-400 font-medium">{member.joinedDate}</span>
+                    <span className="text-xs text-slate-400 font-medium">{endDate || <span className="text-slate-300">—</span>}</span>
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${statusColor}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusBg}`} />
+                      {statusText}
+                    </span>
+                    <span className="text-xs text-slate-400 font-medium">{member.phone}</span>
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors justify-self-end" />
+                  </div>
                 </div>
               );
             })}

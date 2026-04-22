@@ -1,318 +1,282 @@
 import React, { useMemo } from 'react';
-import { Member, Subscription, PaymentType } from '../types';
-import { TrendingUp, Users, UserPlus, CalendarDays, Activity, PieChart, Plus, CreditCard, Award, Dumbbell, ChevronRight } from 'lucide-react';
-import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
+import { Member, Subscription, PaymentType, Expense, InventorySale } from '../types';
+import { Users, UserPlus, CreditCard, AlertCircle, CalendarDays, Activity, MessageSquare, CheckCircle2, AlertTriangle, IndianRupee } from 'lucide-react';
 
 interface DashboardProps {
   members: Member[];
+  expenses: Expense[];
+  inventorySales: InventorySale[];
   onMemberClick: (id: string) => void;
   onAddMember: () => void;
   privacyMode: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ members, onMemberClick, onAddMember, privacyMode }) => {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const currentNepaliDate = useMemo(() => makeDualDateValueFromAd(new Date()), []);
-  const currentYear = currentNepaliDate?.bs.year || 2081;
-  const currentMonthNum = currentNepaliDate?.bs.month || 1;
+const Dashboard: React.FC<DashboardProps> = ({ members, expenses, inventorySales, onMemberClick, onAddMember, privacyMode }) => {
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  
+  const in3Days = new Date(today);
+  in3Days.setDate(today.getDate() + 3);
+  const in3DaysStr = in3Days.toISOString().split('T')[0];
 
-  const monthNames = ["", "Baishakh", "Jestha", "Ashadh", "Shrawan", "Bhadra", "Ashwin", "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra"];
+  const lastWeek = new Date(today);
+  lastWeek.setDate(today.getDate() - 7);
+  const lastWeekStr = lastWeek.toISOString().split('T')[0];
 
-  const monthOptions = useMemo(() => {
-    const options = [];
-    let y = currentYear;
-    let m = currentMonthNum;
-    for (let i = 0; i < 12; i++) {
-      const monthStr = m.toString().padStart(2, '0');
-      options.push({ value: `${y}-${monthStr}`, label: `${monthNames[m]} ${y}` });
-      m--;
-      if (m === 0) { m = 12; y--; }
-    }
-    return options;
-  }, [currentYear, currentMonthNum]);
+  const currentMonthPrefix = todayStr.substring(0, 7);
 
-  const [selectedMonthPrefix, setSelectedMonthPrefix] = React.useState<string>(
-    `${currentYear}-${currentMonthNum.toString().padStart(2, '0')}`
-  );
-
-  const selectedMonthLabel = monthOptions.find(o => o.value === selectedMonthPrefix)?.label || '';
-
-  // Active Members
-  const activeMembersCount = useMemo(() => {
-    return members.filter(m =>
-      m.subscriptions.some(s => !s.isActive ? false : s.startDate <= todayStr && s.endDate >= todayStr)
-    ).length;
-  }, [members, todayStr]);
-
-  // Revenue for selected month
-  const totalRevenueThisMonth = useMemo(() => {
-    if (!selectedMonthPrefix) return 0;
-    return members.reduce((total, m) => {
-      if (m.isDeleted) return total;
-      const revenue = m.subscriptions.reduce((acc, s) => {
-        const subVal = makeDualDateValueFromAd(new Date(s.startDate));
-        const subPrefix = subVal ? `${subVal.bs.year}-${subVal.bs.month.toString().padStart(2, '0')}` : '';
-        if (subPrefix !== selectedMonthPrefix) return acc;
-        let paid = 0;
-        if (s.payment.type === PaymentType.FULL) {
-          if (s.payment.depositPaid || s.payment.remainingPaid) paid = s.payment.totalAmount;
-        } else {
-          if (s.payment.depositPaid) paid += s.payment.depositAmount || 0;
-          if (s.payment.remainingPaid) paid += (s.payment.totalAmount - (s.payment.depositAmount || 0));
-        }
-        return acc + paid;
-      }, 0);
-      return total + revenue;
-    }, 0);
-  }, [members, selectedMonthPrefix]);
-
-  // New Members for selected month
-  const newMembersThisMonth = useMemo(() => {
-    if (!selectedMonthPrefix) return 0;
-    return members.filter(m => {
-      if (m.isDeleted) return false;
-      const joinedVal = makeDualDateValueFromAd(new Date(m.joinedDate));
-      const joinedPrefix = joinedVal ? `${joinedVal.bs.year}-${joinedVal.bs.month.toString().padStart(2, '0')}` : '';
-      return joinedPrefix === selectedMonthPrefix;
-    }).length;
-  }, [members, selectedMonthPrefix]);
-
-  const totalMembersCount = members.filter(m => !m.isDeleted).length;
-
-  // Recent Payments
-  const recentPayments = useMemo(() => {
-    const allSubs: { member: Member; sub: Subscription }[] = [];
+  // 1. Shift & Cash Management: Today's Collection
+  const todaysCollection = useMemo(() => {
+    let total = 0;
+    // Subscriptions paid today (assuming startDate = payment date for now)
     members.forEach(m => {
       if (m.isDeleted) return;
-      m.subscriptions.forEach(s => allSubs.push({ member: m, sub: s }));
+      m.subscriptions.forEach(s => {
+        if (s.startDate === todayStr) {
+          if (s.payment.type === PaymentType.FULL && (s.payment.depositPaid || s.payment.remainingPaid)) {
+            total += s.payment.totalAmount;
+          } else if (s.payment.type === PaymentType.SPLIT) {
+             if (s.payment.depositPaid) total += (s.payment.depositAmount || 0);
+             if (s.payment.remainingPaid) total += (s.payment.totalAmount - (s.payment.depositAmount || 0));
+          }
+        }
+      });
     });
-    return allSubs
-      .sort((a, b) => new Date(b.sub.startDate).getTime() - new Date(a.sub.startDate).getTime())
-      .slice(0, 6);
+    // Inventory sales today
+    inventorySales.forEach(sale => {
+      if (sale.date === todayStr) total += sale.totalAmount;
+    });
+    return total;
+  }, [members, inventorySales, todayStr]);
+
+  // 2. Pending Dues
+  const pendingDues = useMemo(() => {
+    const list: { member: Member, sub: Subscription, amountDue: number }[] = [];
+    members.forEach(m => {
+      if (m.isDeleted) return;
+      m.subscriptions.forEach(s => {
+        if (!s.payment.remainingPaid && !(s.payment.type === PaymentType.FULL && s.payment.remainingPaid)) {
+           let amountDue = s.payment.totalAmount;
+           if (s.payment.type === PaymentType.SPLIT && s.payment.depositPaid) {
+             amountDue -= (s.payment.depositAmount || 0);
+           }
+           if (amountDue > 0) list.push({ member: m, sub: s, amountDue });
+        }
+      });
+    });
+    return list.sort((a, b) => b.amountDue - a.amountDue);
   }, [members]);
 
-  // Recent Signups
-  const recentMembers = useMemo(() => {
-    return [...members]
-      .filter(m => !m.isDeleted)
-      .sort((a, b) => new Date(b.joinedDate).getTime() - new Date(a.joinedDate).getTime())
-      .slice(0, 5);
-  }, [members]);
+  // 3. Member Retention: Expiring in 3 Days
+  const expiringSoon = useMemo(() => {
+    return members.map(m => {
+      if (m.isDeleted) return null;
+      const activeSubs = m.subscriptions.filter(s => s.isActive && s.endDate >= todayStr && s.endDate <= in3DaysStr);
+      if (activeSubs.length > 0) {
+         activeSubs.sort((a,b) => a.endDate.localeCompare(b.endDate));
+         return { member: m, sub: activeSubs[0] };
+      }
+      return null;
+    }).filter(Boolean) as { member: Member, sub: Subscription }[];
+  }, [members, todayStr, in3DaysStr]);
 
-  // Tier distribution
-  const accessLevelStats = useMemo(() => {
-    const counts: Record<string, number> = { 'Gym': 0, 'Gym + Cardio': 0, 'Gym + Cardio + PT': 0 };
-    members.filter(m => !m.isDeleted).forEach(m => {
-      const lvl = m.accessLevel || 'Gym';
-      counts[lvl] = (counts[lvl] || 0) + 1;
-    });
-    return Object.entries(counts).map(([name, count]) => ({
-      name, count,
-      percentage: totalMembersCount ? Math.round((count / totalMembersCount) * 100) : 0
-    })).sort((a, b) => b.count - a.count);
-  }, [members, totalMembersCount]);
+  // 4. Member Retention: Expired This Week
+  const expiredThisWeek = useMemo(() => {
+    return members.map(m => {
+      if (m.isDeleted) return null;
+      // Get the most recent sub
+      const subs = [...m.subscriptions].sort((a,b) => b.endDate.localeCompare(a.endDate));
+      if (subs.length === 0) return null;
+      const latestSub = subs[0];
+      if (latestSub.endDate >= lastWeekStr && latestSub.endDate < todayStr) {
+         return { member: m, sub: latestSub };
+      }
+      return null;
+    }).filter(Boolean) as { member: Member, sub: Subscription }[];
+  }, [members, todayStr, lastWeekStr]);
 
-  const tierColor = (name: string) =>
-    name.includes('PT') ? { bar: 'bg-amber-400', badge: 'bg-amber-50 text-amber-700' }
-    : name.includes('Cardio') ? { bar: 'bg-violet-400', badge: 'bg-violet-50 text-violet-700' }
-    : { bar: 'bg-sky-400', badge: 'bg-sky-50 text-sky-700' };
+  // 5. High-Level Motivation
+  const activeMembersCount = members.filter(m => !m.isDeleted && m.subscriptions.some(s => s.isActive && s.endDate >= todayStr)).length;
+  const totalMembersCount = members.filter(m => !m.isDeleted).length;
+  
+  const newSignupsThisMonth = members.filter(m => !m.isDeleted && m.joinedDate.startsWith(currentMonthPrefix)).length;
 
   return (
-    <div className="max-w-[1400px] mx-auto pb-16 space-y-8">
+    <div className="max-w-[1400px] mx-auto pb-16 space-y-6">
 
-      {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Dashboard</h1>
-          <p className="text-slate-400 text-sm font-medium mt-1">Overview for <span className="text-slate-600 font-semibold">{selectedMonthLabel}</span></p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <select
-              value={selectedMonthPrefix}
-              onChange={e => setSelectedMonthPrefix(e.target.value)}
-              className="appearance-none pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400 cursor-pointer"
-            >
-              {monthOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-            </select>
-            <CalendarDays className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          </div>
-          <button
-            onClick={onAddMember}
-            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm shadow-red-200 transition-all"
-          >
-            <Plus className="w-4 h-4" /> New Member
-          </button>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Front Desk</h1>
+          <p className="text-slate-400 text-xs md:text-sm font-medium mt-0.5">Today's Control Center & Action Items</p>
         </div>
       </div>
 
-      {/* ── Hero Metric Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-
-        {/* Revenue — Primary card, visually dominant */}
-        <div className="lg:col-span-2 bg-slate-900 rounded-2xl p-6 text-white relative overflow-hidden">
-          <div className="absolute -right-8 -top-8 w-40 h-40 bg-red-500/20 rounded-full blur-3xl" />
-          <div className="absolute -right-2 -bottom-6 w-28 h-28 bg-violet-500/20 rounded-full blur-2xl" />
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 text-emerald-400" />
-              </div>
-              <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Revenue This Month</span>
-            </div>
-            <p className="text-4xl font-black tracking-tight text-white mb-1">
-              NPR <span className="tabular-nums">{privacyMode ? '••••••' : totalRevenueThisMonth.toLocaleString()}</span>
-            </p>
-            <p className="text-slate-500 text-xs font-medium">{selectedMonthLabel} · Collected</p>
+      {/* Top Bar: Key Front-Desk Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
+        
+        {/* Today's Collection */}
+        <div className="bg-slate-900 rounded-2xl md:rounded-3xl p-4 md:p-6 relative overflow-hidden group border border-slate-800 shadow-xl shadow-slate-900/10">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl transition-colors"></div>
+          <div className="relative z-10 flex items-center gap-3 md:gap-4 mb-2 md:mb-3">
+             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/10 flex items-center justify-center text-emerald-400">
+               <IndianRupee className="w-5 h-5 md:w-6 md:h-6" />
+             </div>
+             <div>
+               <p className="text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest">Today's Collection</p>
+               <h3 className="text-2xl md:text-3xl font-black text-white tracking-tight">NPR {privacyMode ? '••••••' : todaysCollection.toLocaleString()}</h3>
+             </div>
           </div>
-        </div>
-
-        {/* New Members */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center">
-              <UserPlus className="w-4 h-4 text-violet-500" />
-            </div>
-            <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">New Members</span>
-          </div>
-          <p className="text-4xl font-black text-slate-900 tabular-nums">{newMembersThisMonth}</p>
-          <p className="text-slate-400 text-xs font-medium mt-1">Joined this month</p>
+          <p className="text-xs md:text-sm font-medium text-slate-400 relative z-10">Cash in drawer & digital collected today</p>
         </div>
 
         {/* Active Members */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center">
-              <Users className="w-4 h-4 text-sky-500" />
-            </div>
-            <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Active Now</span>
+        <div className="bg-white rounded-2xl md:rounded-3xl p-4 md:p-6 border border-slate-100 shadow-sm relative overflow-hidden">
+          <div className="flex items-center gap-3 md:gap-4 mb-2 md:mb-3">
+             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-sky-50 flex items-center justify-center text-sky-500">
+               <Users className="w-5 h-5 md:w-6 md:h-6" />
+             </div>
+             <div>
+               <p className="text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-widest">Active Members</p>
+               <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{activeMembersCount}</h3>
+             </div>
           </div>
-          <p className="text-4xl font-black text-slate-900 tabular-nums">{activeMembersCount}</p>
-          <p className="text-slate-400 text-xs font-medium mt-1">of {totalMembersCount} total members</p>
+          <p className="text-xs md:text-sm font-medium text-slate-500">Out of {totalMembersCount} total members</p>
         </div>
 
+        {/* New Signups */}
+        <div className="bg-white rounded-2xl md:rounded-3xl p-4 md:p-6 border border-slate-100 shadow-sm relative overflow-hidden">
+          <div className="flex items-center gap-3 md:gap-4 mb-2 md:mb-3">
+             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-violet-50 flex items-center justify-center text-violet-500">
+               <UserPlus className="w-5 h-5 md:w-6 md:h-6" />
+             </div>
+             <div>
+               <p className="text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-widest">New Signups</p>
+               <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{newSignupsThisMonth}</h3>
+             </div>
+          </div>
+          <p className="text-xs md:text-sm font-medium text-slate-500">Joined this month</p>
+        </div>
       </div>
 
-      {/* ── Lower Section ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Two-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 items-start">
 
-        {/* Recent Payments — takes 2 cols */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="px-6 pt-6 pb-4 border-b border-slate-50 flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">Recent Payments</h2>
-              <p className="text-slate-400 text-xs font-medium mt-0.5">Latest transactions recorded</p>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <CreditCard className="w-4 h-4 text-emerald-500" />
-            </div>
-          </div>
-          <div className="divide-y divide-slate-50">
-            {recentPayments.length === 0 ? (
-              <div className="py-16 text-center text-slate-400 text-sm font-medium">No payments yet.</div>
-            ) : recentPayments.map((item, idx) => {
-              const isFull = item.sub.payment.type === PaymentType.FULL;
-              const amount = isFull ? item.sub.payment.totalAmount : (item.sub.payment.depositAmount || 0);
-              return (
-                <div
-                  key={idx}
-                  onClick={() => onMemberClick(item.member.id)}
-                  className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 cursor-pointer transition-colors group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 shrink-0">
-                      {item.member.name.charAt(0)}
+        {/* Left Column: Action Items */}
+        <div className="flex flex-col gap-6">
+           
+           {/* Pending Dues */}
+           <div className="bg-white rounded-3xl border border-red-100 shadow-sm overflow-hidden">
+             <div className="px-6 pt-6 pb-4 border-b border-slate-50 flex items-center justify-between bg-red-50/30">
+               <div>
+                 <h2 className="text-lg font-bold text-red-900 flex items-center gap-2">
+                   <AlertTriangle className="w-5 h-5 text-red-600" /> Pending Dues
+                 </h2>
+                 <p className="text-red-500 text-xs font-medium mt-0.5">Members owing money. Stop them at the desk!</p>
+               </div>
+             </div>
+             <div className="divide-y divide-slate-50">
+               {pendingDues.length === 0 ? (
+                 <div className="py-12 text-center text-slate-400 text-sm font-medium">All dues cleared! Great job.</div>
+               ) : pendingDues.map((item, idx) => (
+                 <div key={idx} onClick={() => onMemberClick(item.member.id)} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 cursor-pointer transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-sm font-bold text-red-600 shrink-0">
+                        {item.member.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-800 group-hover:text-red-600 transition-colors">{item.member.name}</p>
+                        <p className="text-xs text-slate-500 font-medium">{item.member.phone}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800 group-hover:text-emerald-600 transition-colors">{item.member.name}</p>
-                      <p className="text-xs text-slate-400 font-medium mt-0.5">{item.sub.planName} · {item.sub.startDate}</p>
+                    <div className="text-right flex items-center gap-4">
+                       <div className="flex flex-col items-end gap-1">
+                          <span className="text-sm font-bold text-red-600 bg-red-50 px-3 py-1 rounded-lg border border-red-100">
+                            Due: NPR {privacyMode ? '••••' : item.amountDue.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.sub.planName}</span>
+                       </div>
+                       <button onClick={(e) => { e.stopPropagation(); alert(`Sent SMS reminder to ${item.member.name}`); }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Send SMS Reminder">
+                         <MessageSquare className="w-4 h-4" />
+                       </button>
                     </div>
-                  </div>
-                  <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg">
-                    NPR {privacyMode ? '••••' : amount.toLocaleString()}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+                 </div>
+               ))}
+             </div>
+           </div>
+
         </div>
 
-        {/* Right column — stacked */}
+        {/* Right Column: Retention & Follow-ups */}
         <div className="flex flex-col gap-6">
 
-          {/* Membership Tiers */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-base font-bold text-slate-900">Membership Tiers</h2>
-                <p className="text-slate-400 text-xs font-medium mt-0.5">Package breakdown</p>
-              </div>
-              <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center">
-                <PieChart className="w-4 h-4 text-indigo-500" />
-              </div>
-            </div>
-            <div className="space-y-5">
-              {accessLevelStats.map((stat, idx) => {
-                const colors = tierColor(stat.name);
-                const Icon = stat.name.includes('PT') ? Award : Dumbbell;
-                return (
-                  <div key={idx}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Icon className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="text-sm font-semibold text-slate-700">{stat.name}</span>
+           {/* Expiring Soon */}
+           <div className="bg-white rounded-3xl border border-amber-100 shadow-sm overflow-hidden">
+             <div className="px-6 pt-6 pb-4 border-b border-slate-50 flex items-center justify-between bg-amber-50/30">
+               <div>
+                 <h2 className="text-lg font-bold text-amber-900 flex items-center gap-2">
+                   <CalendarDays className="w-5 h-5 text-amber-500" /> Expiring Soon (3 Days)
+                 </h2>
+                 <p className="text-amber-600 text-xs font-medium mt-0.5">Remind them to renew when they walk in</p>
+               </div>
+             </div>
+             <div className="divide-y divide-slate-50">
+               {expiringSoon.length === 0 ? (
+                 <div className="py-12 text-center text-slate-400 text-sm font-medium">No one expiring in the next 3 days.</div>
+               ) : expiringSoon.map((item, idx) => (
+                 <div key={idx} onClick={() => onMemberClick(item.member.id)} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 cursor-pointer transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-sm font-bold text-amber-600 shrink-0">
+                        {item.member.name.charAt(0)}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${colors.badge}`}>{stat.count}</span>
-                        <span className="text-xs font-bold text-slate-400 w-8 text-right">{stat.percentage}%</span>
+                      <div>
+                        <p className="text-sm font-bold text-slate-800 group-hover:text-amber-600 transition-colors">{item.member.name}</p>
+                        <p className="text-xs text-slate-500 font-medium">Ends on {item.sub.endDate}</p>
                       </div>
                     </div>
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div className={`h-2 rounded-full ${colors.bar} transition-all duration-700`} style={{ width: `${stat.percentage}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                    <button onClick={(e) => { e.stopPropagation(); alert(`Sent renewal reminder to ${item.member.name}`); }} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Send SMS Reminder">
+                       <MessageSquare className="w-4 h-4" />
+                    </button>
+                 </div>
+               ))}
+             </div>
+           </div>
 
-          {/* Recent Signups */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex-1">
-            <div className="px-6 pt-6 pb-4 border-b border-slate-50 flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-slate-900">Recent Signups</h2>
-                <p className="text-slate-400 text-xs font-medium mt-0.5">Latest members</p>
-              </div>
-              <div className="w-9 h-9 rounded-xl bg-sky-50 flex items-center justify-center">
-                <Activity className="w-4 h-4 text-sky-500" />
-              </div>
-            </div>
-            <div className="divide-y divide-slate-50">
-              {recentMembers.length === 0 ? (
-                <div className="py-10 text-center text-slate-400 text-sm font-medium">No members yet.</div>
-              ) : recentMembers.map((member, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => onMemberClick(member.id)}
-                  className="flex items-center justify-between px-6 py-3.5 hover:bg-slate-50 cursor-pointer transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 shrink-0">
-                      {member.name.charAt(0)}
+           {/* Expired This Week */}
+           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+             <div className="px-6 pt-6 pb-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+               <div>
+                 <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                   <AlertCircle className="w-5 h-5 text-slate-500" /> Expired Recently
+                 </h2>
+                 <p className="text-slate-500 text-xs font-medium mt-0.5">Packages that ended in the last 7 days</p>
+               </div>
+             </div>
+             <div className="divide-y divide-slate-50">
+               {expiredThisWeek.length === 0 ? (
+                 <div className="py-12 text-center text-slate-400 text-sm font-medium">No recent expirations. Retention is 100%!</div>
+               ) : expiredThisWeek.map((item, idx) => (
+                 <div key={idx} onClick={() => onMemberClick(item.member.id)} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 cursor-pointer transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-500 shrink-0">
+                        {item.member.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-800 group-hover:text-slate-600 transition-colors">{item.member.name}</p>
+                        <p className="text-xs text-red-500 font-medium">Ended {item.sub.endDate}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800 group-hover:text-sky-600 transition-colors">{member.name}</p>
-                      <p className="text-xs text-slate-400 font-medium">{member.joinedDate}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
-                </div>
-              ))}
-            </div>
-          </div>
+                    <button onClick={(e) => { e.stopPropagation(); alert(`Sent win-back SMS to ${item.member.name}`); }} className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors" title="Send SMS Win-back">
+                       <MessageSquare className="w-3.5 h-3.5" /> SMS
+                    </button>
+                 </div>
+               ))}
+             </div>
+           </div>
 
         </div>
+
       </div>
+
     </div>
   );
 };

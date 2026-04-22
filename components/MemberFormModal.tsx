@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Member } from '../types';
 import { X, UserPlus, FileEdit, Camera, Upload, Loader2 } from 'lucide-react';
 import { NepaliDatePicker, makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
@@ -33,22 +33,45 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
   existingMembers = []
 }) => {
   const [formData, setFormData] = useState({
-    memberNumber: initialData?.memberNumber || generateMemberNumber(existingMembers),
-    name: initialData?.name || '',
-    gender: initialData?.gender || '',
-    phone: initialData?.phone || '',
-    email: initialData?.email || '',
-    dob: initialData?.dob || '',
-    address: initialData?.address || '',
-    emergencyContact: initialData?.emergencyContact || '',
-    emergencyContact2: initialData?.emergencyContact2 || '',
-    bloodGroup: initialData?.bloodGroup || '',
-    accessLevel: initialData?.accessLevel || 'Gym',
-    joinedDate: initialData?.joinedDate || new Date().toISOString().split('T')[0],
-    notes: initialData?.notes || '',
-    profilePicture: initialData?.profilePicture || '',
-    thumbnail: initialData?.thumbnail || '',
+    memberNumber: '',
+    name: '',
+    gender: '',
+    phone: '',
+    email: '',
+    dob: '',
+    address: '',
+    emergencyContact: '',
+    emergencyContact2: '',
+    bloodGroup: '',
+    accessLevel: 'Gym',
+    joinedDate: new Date().toISOString().split('T')[0],
+    notes: '',
+    profilePicture: '',
+    thumbnail: '',
   });
+
+  // Re-initialize form data every time the modal opens or initialData changes
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        memberNumber: initialData?.memberNumber || generateMemberNumber(existingMembers),
+        name: initialData?.name || '',
+        gender: initialData?.gender || '',
+        phone: initialData?.phone || '',
+        email: initialData?.email || '',
+        dob: initialData?.dob || '',
+        address: initialData?.address || '',
+        emergencyContact: initialData?.emergencyContact || '',
+        emergencyContact2: initialData?.emergencyContact2 || '',
+        bloodGroup: initialData?.bloodGroup || '',
+        accessLevel: initialData?.accessLevel || 'Gym',
+        joinedDate: initialData?.joinedDate || new Date().toISOString().split('T')[0],
+        notes: initialData?.notes || '',
+        profilePicture: initialData?.profilePicture || '',
+        thumbnail: initialData?.thumbnail || '',
+      });
+    }
+  }, [isOpen, initialData, existingMembers]);
 
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -116,34 +139,34 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
 
   if (!isOpen) return null;
 
-  const inputClass = "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-colors";
+  const inputClass = "w-full px-3 py-2.5 md:px-4 md:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-colors text-sm";
   const labelClass = "block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200">
-        <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-100 p-6 flex justify-between items-center z-10">
-          <div className="flex items-center gap-3">
-             <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
-               {initialData ? <FileEdit className="w-5 h-5"/> : <UserPlus className="w-5 h-5"/>}
+    <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-2xl h-full overflow-y-auto shadow-2xl animate-in slide-in-from-right duration-300">
+        <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-4 md:p-6 flex justify-between items-center z-10">
+          <div className="flex items-center gap-2.5 md:gap-3">
+             <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
+               {initialData ? <FileEdit className="w-4 h-4 md:w-5 md:h-5"/> : <UserPlus className="w-4 h-4 md:w-5 md:h-5"/>}
              </div>
              <div>
-                <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+                <h2 className="text-lg md:text-xl font-bold text-slate-800 tracking-tight">
                   {initialData ? 'Edit Member' : 'New Member'}
                 </h2>
-                <p className="text-xs text-slate-500 font-medium">Enter member details below</p>
+                <p className="text-[10px] md:text-xs text-slate-500 font-medium">Enter member details below</p>
              </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 md:p-8">
-          <div className="space-y-8">
+        <form onSubmit={handleSubmit} className="p-4 md:p-8">
+          <div className="space-y-6 md:space-y-8">
 
             {/* ─── Photo & Member No ─── */}
-            <div className="flex flex-col md:flex-row gap-8 items-start">
+            <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
                <div className="flex flex-col items-center gap-3">
                   <div className="relative w-32 h-32 rounded-full overflow-hidden bg-slate-100 border-4 border-white shadow-md">
                     {formData.profilePicture ? (
@@ -209,7 +232,7 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
                     <input type="tel" name="phone" required value={formData.phone} onChange={handleChange} className={inputClass} placeholder="98XXXXXXXX" />
                  </div>
                  <div className="relative z-[101]">
-                    <label className={labelClass}>DOB</label>
+                    <label className={labelClass}>DOB <span className="text-slate-400 normal-case">(AD: {formData.dob || 'None'})</span></label>
                     <NepaliDatePicker 
                       value={formData.dob ? makeDualDateValueFromAd(new Date(formData.dob)) : null}
                       onChange={(val) => setFormData(prev => ({ ...prev, dob: val?.formatted.ad || '' }))}
@@ -220,7 +243,7 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
                     />
                  </div>
                  <div className="relative z-[100]">
-                    <label className={labelClass}>Joined Date</label>
+                    <label className={labelClass}>Joined Date <span className="text-slate-400 normal-case">(AD: {formData.joinedDate})</span></label>
                     <NepaliDatePicker 
                       value={formData.joinedDate ? makeDualDateValueFromAd(new Date(formData.joinedDate)) : null}
                       onChange={(val) => setFormData(prev => ({ ...prev, joinedDate: val?.formatted.ad || '' }))}

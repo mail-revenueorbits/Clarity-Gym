@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Member, Subscription, PaymentType } from '../types';
+import { Member, Subscription, PaymentType, PaymentMethod } from '../types';
 import { X, Calendar, Plus } from 'lucide-react';
 import { NepaliDatePicker, makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 
@@ -23,6 +23,7 @@ const SubscriptionFormModal: React.FC<SubscriptionFormModalProps> = ({ isOpen, o
   const [depositAmount, setDepositAmount] = useState(existingSubscription?.payment.depositAmount || 0);
   const [depositPaid, setDepositPaid] = useState(existingSubscription?.payment.depositPaid || false);
   const [remainingPaid, setRemainingPaid] = useState(existingSubscription?.payment.remainingPaid || false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(existingSubscription?.payment.method || 'Cash');
   const [notes, setNotes] = useState(existingSubscription?.notes || '');
   const [isActive, setIsActive] = useState(existingSubscription?.isActive ?? true);
 
@@ -70,23 +71,24 @@ const SubscriptionFormModal: React.FC<SubscriptionFormModalProps> = ({ isOpen, o
         totalAmount,
         depositAmount: paymentType === PaymentType.SPLIT ? depositAmount : undefined,
         depositPaid: paymentType === PaymentType.FULL ? remainingPaid : depositPaid, // If full, depositPaid is basically remainingPaid
-        remainingPaid
+        remainingPaid,
+        method: paymentMethod
       }
     };
     onSave(sub);
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
-        <div className="sticky top-0 bg-white border-b border-slate-100 p-6 flex justify-between items-center z-10">
-          <h2 className="text-xl font-bold text-slate-800">{existingSubscription ? 'Edit Subscription' : 'Add Subscription'}</h2>
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex justify-end">
+      <div className="bg-white w-full max-w-2xl h-full overflow-y-auto shadow-xl animate-in slide-in-from-right duration-300">
+        <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-4 md:p-6 flex justify-between items-center z-10">
+          <h2 className="text-lg md:text-xl font-bold text-slate-800">{existingSubscription ? 'Edit Subscription' : 'Add Subscription'}</h2>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-5 md:space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Plan Name / Duration</label>
@@ -145,6 +147,17 @@ const SubscriptionFormModal: React.FC<SubscriptionFormModalProps> = ({ isOpen, o
                       <option value={PaymentType.SPLIT}>Split / Installment</option>
                     </select>
                  </div>
+                 <div className="md:col-span-2 mt-2">
+                    <label className="block text-xs font-medium text-slate-500 mb-2">Payment Method</label>
+                    <div className="grid grid-cols-2 md:flex gap-2 md:gap-3">
+                       {['Cash', 'Fonepay', 'eSewa', 'Bank Transfer'].map((m) => (
+                         <label key={m} className={`md:flex-1 cursor-pointer text-center py-2 md:py-2.5 rounded-xl border text-xs md:text-sm font-bold transition-all ${paymentMethod === m ? 'bg-red-50 border-red-500 text-red-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                           <input type="radio" name="paymentMethod" value={m} checked={paymentMethod === m} onChange={() => setPaymentMethod(m as PaymentMethod)} className="sr-only" />
+                           {m}
+                         </label>
+                       ))}
+                    </div>
+                 </div>
               </div>
 
               {paymentType === PaymentType.SPLIT ? (
@@ -179,10 +192,10 @@ const SubscriptionFormModal: React.FC<SubscriptionFormModalProps> = ({ isOpen, o
              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none resize-none" placeholder="Any additional notes about this subscription..."></textarea>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-             <button type="button" onClick={onClose} className="px-6 py-3 font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
-             <button type="submit" className="px-6 py-3 font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all flex items-center gap-2">
-                 <Calendar className="w-5 h-5" /> Save Subscription
+          <div className="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
+             <button type="button" onClick={onClose} className="px-5 py-2.5 md:py-3 font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors text-sm">Cancel</button>
+             <button type="submit" className="px-5 py-2.5 md:py-3 font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all flex items-center justify-center gap-2 text-sm">
+                 <Calendar className="w-4 h-4" /> Save Subscription
              </button>
           </div>
         </form>

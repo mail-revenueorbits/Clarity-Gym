@@ -1,6 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { Member, Subscription, PaymentType } from '../types';
-import { Search, Filter, CreditCard, CheckCircle2, Clock, DollarSign, Download, ChevronRight } from 'lucide-react';
+import { Search, Filter, CreditCard, CheckCircle2, Clock, DollarSign, Download, ChevronRight, MessageSquare, Calendar } from 'lucide-react';
+import { makeDualDateValueFromAd, getNepaliToday } from '@etpl/nepali-datepicker';
+
+const NEPALI_MONTHS = [
+  'Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin',
+  'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'
+];
 
 interface PaymentLogsProps {
   members: Member[];
@@ -20,6 +26,10 @@ type PaymentRecord = {
 const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick, privacyMode }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'pending' | 'completed'>('all');
+  
+  const todayBS = getNepaliToday();
+  const [selectedMonth, setSelectedMonth] = useState(todayBS.month); // 1-12
+  const [selectedYear, setSelectedYear] = useState(todayBS.year);
 
   // Generate all payment records
   const allRecords = useMemo(() => {
@@ -38,28 +48,37 @@ const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick, priva
           amount = s.payment.totalAmount - paid;
         }
 
+        const dualDate = makeDualDateValueFromAd(new Date(s.startDate));
+        
         records.push({
           id: s.id,
           member: m,
           sub: s,
           type: isPending ? 'pending' : 'completed',
           amount: amount,
-          date: s.startDate
+          date: s.startDate,
+          // @ts-ignore (adding bsDate for easier display)
+          bsDate: dualDate.formatted.bs
         });
       });
     });
     return records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [members]);
 
-  // Filter records based on search and type
+  // Filter records based on search, type AND Nepali Month
   const filteredRecords = useMemo(() => {
     return allRecords.filter(record => {
       const matchesSearch = record.member.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             record.member.phone.includes(searchTerm);
       const matchesType = filterType === 'all' || record.type === filterType;
-      return matchesSearch && matchesType;
+      
+      // @ts-ignore
+      const [year, month] = record.bsDate.split('/').map(Number);
+      const matchesMonth = month === selectedMonth && year === selectedYear;
+
+      return matchesSearch && matchesType && matchesMonth;
     });
-  }, [allRecords, searchTerm, filterType]);
+  }, [allRecords, searchTerm, filterType, selectedMonth, selectedYear]);
 
   // Calculate Metrics
   const metrics = useMemo(() => {
@@ -75,164 +94,218 @@ const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick, priva
     }, { totalCollected: 0, totalPending: 0, completedCount: 0, pendingCount: 0 });
   }, [allRecords]);
 
+  // CSV Export
+  const handleExportCSV = () => {
+    const rows = [['Member', 'Phone', 'Plan', 'Access Level', 'Date', 'Amount', 'Type', 'Status', 'Method']];
+    allRecords.forEach(r => {
+      rows.push([
+        r.member.name,
+        r.member.phone,
+        r.sub.planName,
+        r.member.accessLevel || 'Gym',
+        r.date,
+        r.amount.toString(),
+        r.sub.payment.type,
+        r.type,
+        r.sub.payment.method || 'Cash'
+      ]);
+    });
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ClarityGym_Payments_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="space-y-8 max-w-[1400px] mx-auto pb-12">
+    <div className="max-w-[1400px] mx-auto pb-12 space-y-6">
       
-      {/* Header & Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors"></div>
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <DollarSign className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Total Collected</p>
-              <h3 className="text-2xl font-bold text-slate-800 tracking-tight">NPR {privacyMode ? '••••••' : metrics.totalCollected.toLocaleString()}</h3>
-            </div>
-          </div>
-          <p className="text-sm font-medium text-emerald-600 bg-emerald-50 inline-block px-3 py-1 rounded-lg">
-            {metrics.completedCount} Completed Payments
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Payment Logs</h1>
+          <p className="text-slate-400 text-xs md:text-sm font-medium mt-0.5">
+            <span className="text-slate-600 font-bold">{allRecords.length}</span> transactions recorded
           </p>
         </div>
-
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition-colors"></div>
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              <Clock className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Total Pending</p>
-              <h3 className="text-2xl font-bold text-slate-800 tracking-tight">NPR {privacyMode ? '••••••' : metrics.totalPending.toLocaleString()}</h3>
-            </div>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          {/* Month Selector */}
+          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
+            <Calendar className="w-4 h-4 text-slate-400" />
+            <select 
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer"
+            >
+              {NEPALI_MONTHS.map((m, i) => (
+                <option key={m} value={i + 1}>{m}</option>
+              ))}
+            </select>
+            <select 
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer border-l border-slate-200 pl-2 ml-1"
+            >
+              {[2080, 2081, 2082, 2083, 2084, 2085].map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
           </div>
-          <p className="text-sm font-medium text-amber-600 bg-amber-50 inline-block px-3 py-1 rounded-lg">
-            {metrics.pendingCount} Pending Payments
-          </p>
-        </div>
-
-        <div className="bg-red-600 rounded-3xl p-6 border border-red-700 shadow-md text-white flex flex-col justify-between relative overflow-hidden">
-           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-2xl rounded-full"></div>
-           <div>
-             <h3 className="text-xl font-bold mb-1">Financial Report</h3>
-             <p className="text-red-200 text-sm font-medium">Export all payment histories as a spreadsheet for your records.</p>
-           </div>
-           <button onClick={() => alert('Generating Excel report...')} className="mt-4 flex items-center gap-2 bg-white text-red-600 px-5 py-2.5 rounded-xl font-bold hover:bg-red-50 transition-colors self-start shadow-sm">
-             <Download className="w-4 h-4" /> Export CSV
-           </button>
+          <button onClick={handleExportCSV} className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all shadow-sm text-sm">
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
         </div>
       </div>
 
-      {/* Main Table Section */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+      {/* Metric Cards */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4">
+        <div className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 border border-slate-100 shadow-sm flex items-center gap-3 md:gap-4">
+          <div className="w-9 h-9 md:w-11 md:h-11 rounded-lg md:rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <DollarSign className="w-4 h-4 md:w-5 md:h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-slate-500 text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Collected</p>
+            <p className="text-base md:text-xl font-black text-slate-900 tracking-tight">NPR {privacyMode ? '••••••' : metrics.totalCollected.toLocaleString()}</p>
+            <p className="text-[10px] md:text-xs font-medium text-emerald-600">{metrics.completedCount} completed</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 border border-slate-100 shadow-sm flex items-center gap-3 md:gap-4">
+          <div className="w-9 h-9 md:w-11 md:h-11 rounded-lg md:rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <Clock className="w-4 h-4 md:w-5 md:h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-slate-500 text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Pending</p>
+            <p className="text-base md:text-xl font-black text-slate-900 tracking-tight">NPR {privacyMode ? '••••••' : metrics.totalPending.toLocaleString()}</p>
+            <p className="text-[10px] md:text-xs font-medium text-amber-600">{metrics.pendingCount} outstanding</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Table Section */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         
         {/* Toolbar */}
-        <div className="p-6 md:p-8 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-           <div>
-             <h2 className="text-xl font-bold text-slate-800 tracking-tight mb-1">Transaction Log</h2>
-             <p className="text-sm text-slate-500 font-medium">Detailed history of all member subscriptions and payments</p>
+        <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+           <div className="flex gap-1.5">
+              {(['all', 'completed', 'pending'] as const).map(f => (
+                <button key={f} onClick={() => setFilterType(f)} className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors capitalize ${filterType === f ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:text-slate-700'}`}>
+                  {f === 'all' ? `All (${filteredRecords.length})` : f === 'completed' ? `Completed (${filteredRecords.filter(r => r.type === 'completed').length})` : `Pending (${filteredRecords.filter(r => r.type === 'pending').length})`}
+                </button>
+              ))}
            </div>
-
-           <div className="flex flex-col sm:flex-row gap-3">
-             <div className="relative">
-               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-               <input 
-                 type="text" 
-                 placeholder="Search members..." 
-                 value={searchTerm}
-                 onChange={(e) => setSearchTerm(e.target.value)}
-                 className="w-full sm:w-64 pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
-               />
-             </div>
-             
-             <div className="relative">
-               <select 
-                 value={filterType}
-                 onChange={(e) => setFilterType(e.target.value as any)}
-                 className="w-full sm:w-auto appearance-none pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
-               >
-                 <option value="all">All Status</option>
-                 <option value="completed">Completed</option>
-                 <option value="pending">Pending</option>
-               </select>
-               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-             </div>
+           <div className="relative">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+             <input 
+               type="text" 
+               placeholder="Search by name or phone..." 
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+               className="w-full sm:w-64 pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-red-500 transition-colors"
+             />
            </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse whitespace-nowrap">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
-                <th className="px-6 py-4 font-bold text-slate-500 text-xs uppercase tracking-wider">Member Details</th>
-                <th className="px-6 py-4 font-bold text-slate-500 text-xs uppercase tracking-wider">Plan & Access</th>
-                <th className="px-6 py-4 font-bold text-slate-500 text-xs uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 font-bold text-slate-500 text-xs uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-4 font-bold text-slate-500 text-xs uppercase tracking-wider text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {filteredRecords.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500 font-medium">
-                    No payment records found matching your filters.
-                  </td>
-                </tr>
-              ) : (
-                filteredRecords.map((record) => (
-                  <tr 
-                    key={record.id} 
-                    onClick={() => onMemberClick(record.member.id)}
-                    className="hover:bg-slate-50/50 transition-colors cursor-pointer group"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-600">
-                           {record.member.name.charAt(0)}
-                         </div>
-                         <div>
-                           <div className="font-bold text-slate-800 group-hover:text-red-600 transition-colors">{record.member.name}</div>
-                           <div className="text-xs font-medium text-slate-500">{record.member.phone}</div>
-                         </div>
+        {/* Table Header - Desktop only */}
+        <div className="hidden md:grid grid-cols-[1fr_110px_100px_120px_140px] items-center px-5 py-3 border-b border-slate-200 bg-slate-50">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Member</span>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Plan</span>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Date</span>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400 text-right">Amount</span>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400 text-right">Status</span>
+        </div>
+
+        {/* Rows */}
+        {filteredRecords.length === 0 ? (
+          <div className="py-16 text-center text-slate-400 text-sm font-medium">
+            No payment records found matching your filters.
+          </div>
+        ) : (
+          <div>
+            {filteredRecords.map((record, idx) => {
+              const isEven = idx % 2 === 0;
+              return (
+                <div
+                  key={record.id}
+                  onClick={() => onMemberClick(record.member.id)}
+                  className={`cursor-pointer transition-colors group ${isEven ? 'bg-white' : 'bg-gray-50/70'} hover:bg-red-50`}
+                >
+                  {/* Mobile card layout */}
+                  <div className="md:hidden flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">
+                        {record.member.name.charAt(0)}
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-slate-700">{record.sub.planName}</div>
-                      <div className="text-xs font-medium text-slate-400 mt-0.5">{record.member.accessLevel || 'Gym'}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-slate-700">{record.date}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-slate-800">NPR {privacyMode ? '••••' : record.amount.toLocaleString()}</div>
-                      {record.sub.payment.type === PaymentType.SPLIT && (
-                        <div className="text-[10px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">Split Payment</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                       <div className="flex items-center justify-end gap-3">
-                         {record.type === 'completed' ? (
-                           <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold">
-                             <CheckCircle2 className="w-3.5 h-3.5" /> Completed
-                           </span>
-                         ) : (
-                           <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-xs font-bold">
-                             <CreditCard className="w-3.5 h-3.5" /> Pending
-                           </span>
-                         )}
-                         <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-red-500 transition-colors" />
-                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">{record.member.name}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">{record.sub.planName} · {/* @ts-ignore */}{record.bsDate}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-slate-800">NPR {privacyMode ? '••••' : record.amount.toLocaleString()}</p>
+                        {record.type === 'completed' ? (
+                          <span className="text-[10px] font-bold text-emerald-600">Paid</span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-amber-600">Due</span>
+                        )}
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-300" />
+                    </div>
+                  </div>
 
+                  {/* Desktop grid layout */}
+                  <div className="hidden md:grid grid-cols-[1fr_110px_100px_120px_140px] items-center px-5 py-3.5">
+                    <div className="flex items-center gap-3 overflow-hidden min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">
+                        {record.member.name.charAt(0)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 group-hover:text-red-600 transition-colors truncate">{record.member.name}</p>
+                        <p className="text-[11px] text-slate-400 font-medium">{record.member.phone}</p>
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-slate-600 truncate">{record.sub.planName}</p>
+                      {record.sub.payment.type === PaymentType.SPLIT && (
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Split</p>
+                      )}
+                    </div>
+                    {/* @ts-ignore */}
+                    <span className="text-xs text-slate-500 font-bold">{record.bsDate}</span>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-slate-800">NPR {privacyMode ? '••••' : record.amount.toLocaleString()}</p>
+                      {record.sub.payment.method && record.type === 'completed' && (
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded uppercase">{record.sub.payment.method}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-end gap-2">
+                      {record.type === 'completed' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[11px] font-bold">
+                          <CheckCircle2 className="w-3 h-3" /> Paid
+                        </span>
+                      ) : (
+                        <>
+                          <button onClick={(e) => { e.stopPropagation(); alert(`Sent SMS reminder to ${record.member.name} for NPR ${record.amount}`); }} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Send SMS Reminder">
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg text-[11px] font-bold">
+                            <CreditCard className="w-3 h-3" /> Due
+                          </span>
+                        </>
+                      )}
+                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

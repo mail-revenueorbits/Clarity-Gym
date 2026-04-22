@@ -73,18 +73,22 @@ ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notification_log ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Any authenticated user can do everything
+DROP POLICY IF EXISTS "Authenticated users full access" ON members;
 CREATE POLICY "Authenticated users full access" ON members
   FOR ALL USING (auth.role() = 'authenticated')
   WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Authenticated users full access" ON subscriptions;
 CREATE POLICY "Authenticated users full access" ON subscriptions
   FOR ALL USING (auth.role() = 'authenticated')
   WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Authenticated users full access" ON payments;
 CREATE POLICY "Authenticated users full access" ON payments
   FOR ALL USING (auth.role() = 'authenticated')
   WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Authenticated users full access" ON notification_log;
 CREATE POLICY "Authenticated users full access" ON notification_log
   FOR ALL USING (auth.role() = 'authenticated')
   WITH CHECK (auth.role() = 'authenticated');
@@ -98,19 +102,23 @@ VALUES ('profile-pictures', 'profile-pictures', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Allow authenticated users to upload/read profile pictures
+DROP POLICY IF EXISTS "Authenticated users can upload" ON storage.objects;
 CREATE POLICY "Authenticated users can upload" ON storage.objects
   FOR INSERT WITH CHECK (
     bucket_id = 'profile-pictures' AND auth.role() = 'authenticated'
   );
 
+DROP POLICY IF EXISTS "Anyone can view profile pictures" ON storage.objects;
 CREATE POLICY "Anyone can view profile pictures" ON storage.objects
   FOR SELECT USING (bucket_id = 'profile-pictures');
 
+DROP POLICY IF EXISTS "Authenticated users can update" ON storage.objects;
 CREATE POLICY "Authenticated users can update" ON storage.objects
   FOR UPDATE USING (
     bucket_id = 'profile-pictures' AND auth.role() = 'authenticated'
   );
 
+DROP POLICY IF EXISTS "Authenticated users can delete" ON storage.objects;
 CREATE POLICY "Authenticated users can delete" ON storage.objects
   FOR DELETE USING (
     bucket_id = 'profile-pictures' AND auth.role() = 'authenticated'

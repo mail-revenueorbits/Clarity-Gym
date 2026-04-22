@@ -92,6 +92,13 @@ const Settings: React.FC = () => {
 
   return (
     <div className="max-w-[1400px] mx-auto pb-12 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Settings</h1>
+          <p className="text-slate-400 text-sm font-medium mt-1">Manage your gym packages and pricing</p>
+        </div>
+      </div>
+      
       <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm">
         <div className="flex items-center justify-between mb-8 pb-5 border-b border-slate-100">
            <div className="flex items-center gap-3">
@@ -99,7 +106,7 @@ const Settings: React.FC = () => {
                 <SettingsIcon className="w-5 h-5" />
               </div>
               <div>
-                 <h2 className="text-xl font-bold text-slate-800 tracking-tight">Package Pricing</h2>
+                 <h2 className="text-lg font-bold text-slate-900">Package Pricing</h2>
                  <p className="text-xs text-slate-500 font-medium">Configure the cost of each membership plan</p>
               </div>
            </div>

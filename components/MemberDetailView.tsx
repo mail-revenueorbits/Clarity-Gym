@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Member, Subscription, PaymentType } from '../types';
-import { ArrowLeft, User, Phone, MapPin, Calendar, HeartPulse, Edit2, Plus, CreditCard, Clock, CheckCircle2, Trash2 } from 'lucide-react';
+import { ArrowLeft, User, Phone, MapPin, Calendar, HeartPulse, Edit2, Plus, CreditCard, Clock, CheckCircle2, Trash2, Bell, MessageSquare } from 'lucide-react';
 import SubscriptionFormModal from './SubscriptionFormModal';
+import { LogEntry } from './Notifications';
 
 interface MemberDetailViewProps {
   member: Member;
@@ -9,9 +10,10 @@ interface MemberDetailViewProps {
   onEditMember: (member: Member) => void;
   onSaveSubscription: (memberId: string, subscription: Subscription) => void;
   onDeleteMember: (id: string) => void;
+  notificationLogs?: LogEntry[];
 }
 
-const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onEditMember, onSaveSubscription, onDeleteMember }) => {
+const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onEditMember, onSaveSubscription, onDeleteMember, notificationLogs = [] }) => {
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [editingSub, setEditingSub] = useState<Subscription | undefined>(undefined);
 
@@ -49,17 +51,21 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
       return paid >= sub.payment.totalAmount ? 'Fully Paid' : `Partial (NPR ${paid})`;
   };
 
+  const memberLogs = notificationLogs.filter(log => 
+    log.recipientNames.includes(member.name) || log.recipientNames.includes('All Members (Broadcast)')
+  ).sort((a, b) => b.timestamp - a.timestamp);
+
   return (
-    <div className="max-w-[1400px] mx-auto pb-12 space-y-6">
-      <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-red-600 font-medium transition-colors mb-2">
-        <ArrowLeft className="w-5 h-5" /> Back to Members
+    <div className="max-w-[1400px] mx-auto pb-12 space-y-4 md:space-y-6">
+      <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-red-600 font-medium transition-colors mb-1 text-sm">
+        <ArrowLeft className="w-4 h-4" /> Back to Members
       </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         
         {/* Profile Sidebar */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+        <div className="lg:col-span-1 space-y-4 md:space-y-6">
+          <div className="bg-white rounded-2xl md:rounded-3xl p-5 md:p-8 border border-slate-100 shadow-sm relative overflow-hidden">
              <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/5 blur-3xl rounded-full"></div>
              
              <div className="flex justify-between items-start mb-6 relative">
@@ -77,8 +83,8 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
              </div>
 
              <div className="relative">
-                <h1 className="text-2xl font-bold text-slate-800 leading-tight">{member.name}</h1>
-                <p className="text-slate-500 font-medium mt-1">#{member.memberNumber}</p>
+                <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">{member.name}</h1>
+                <p className="text-slate-500 font-medium mt-0.5 text-sm">#{member.memberNumber}</p>
              </div>
 
              <div className="mt-8 space-y-5">
@@ -91,7 +97,7 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
               </div>
           </div>
 
-          <div className="bg-red-50 rounded-3xl p-6 md:p-8 border border-red-100 relative overflow-hidden">
+          <div className="bg-red-50 rounded-2xl md:rounded-3xl p-5 md:p-8 border border-red-100 relative overflow-hidden">
              <HeartPulse className="absolute -right-4 -bottom-4 w-32 h-32 text-red-600/10" />
              <h3 className="text-sm font-bold text-red-900 uppercase tracking-wider mb-5 flex items-center gap-2">Emergency & Health</h3>
              <div className="space-y-4 relative">
@@ -116,12 +122,12 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
         </div>
 
         {/* Subscriptions Main Area */}
-        <div className="lg:col-span-2 space-y-6">
-           <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm">
-              <div className="flex justify-between items-center mb-8 border-b border-slate-100 pb-5">
-                 <h2 className="text-xl font-bold text-slate-800 tracking-tight">Subscription History</h2>
-                 <button onClick={handleOpenNewSub} className="flex items-center gap-2 px-5 py-2.5 bg-red-50 text-red-700 font-bold rounded-xl hover:bg-red-100 transition-colors whitespace-nowrap">
-                    <Plus className="w-5 h-5" /> Add Log
+        <div className="lg:col-span-2 space-y-4 md:space-y-6">
+           <div className="bg-white rounded-2xl md:rounded-3xl p-4 md:p-8 border border-slate-100 shadow-sm">
+              <div className="flex justify-between items-center mb-5 md:mb-8 border-b border-slate-100 pb-4 md:pb-5">
+                 <h2 className="text-base md:text-lg font-bold text-slate-900">Subscription History</h2>
+                 <button onClick={handleOpenNewSub} className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-red-50 text-red-700 font-bold rounded-xl hover:bg-red-100 transition-colors whitespace-nowrap text-xs md:text-sm">
+                    <Plus className="w-4 h-4" /> Add Log
                  </button>
               </div>
 
@@ -137,11 +143,11 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
                        const isPaid = getPaymentStatus(sub) === 'Fully Paid';
 
                        return (
-                         <div key={sub.id} className="group relative bg-white border border-slate-200 rounded-2xl p-5 hover:border-red-200 transition-all hover:shadow-lg hover:shadow-slate-200/20">
-                            <button onClick={() => handleOpenEditSub(sub)} className="absolute top-4 right-4 p-2 bg-slate-50 text-slate-400 hover:text-slate-700 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                               <Edit2 className="w-4 h-4" />
+                         <div key={sub.id} className="group relative bg-white border border-slate-200 rounded-xl md:rounded-2xl p-4 md:p-5 hover:border-red-200 transition-all hover:shadow-lg hover:shadow-slate-200/20">
+                            <button onClick={() => handleOpenEditSub(sub)} className="absolute top-3 right-3 md:top-4 md:right-4 p-1.5 md:p-2 bg-slate-50 text-slate-400 hover:text-slate-700 rounded-lg opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                               <Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                             </button>
-                            <div className="flex flex-col md:flex-row gap-6 md:items-center pr-12">
+                            <div className="flex flex-col gap-3 md:flex-row md:gap-6 md:items-center pr-10 md:pr-12">
                                <div className="flex-1">
                                   <div className="flex items-center gap-3 mb-2">
                                      <h3 className="text-lg font-bold text-slate-800">{sub.planName}</h3>
@@ -170,6 +176,50 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
                          </div>
                        )
                     })
+                 )}
+              </div>
+           </div>
+
+           {/* Communication History */}
+           <div className="bg-white rounded-2xl md:rounded-3xl p-4 md:p-8 border border-slate-100 shadow-sm mt-4 md:mt-6">
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                 <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                   <Bell className="w-5 h-5" />
+                 </div>
+                 <div>
+                   <h2 className="text-lg font-bold text-slate-900">Communication History</h2>
+                   <p className="text-xs text-slate-500 font-medium">Log of SMS notifications sent to this member</p>
+                 </div>
+              </div>
+
+              <div className="space-y-3">
+                 {memberLogs.length === 0 ? (
+                   <div className="text-center py-10 bg-slate-50 rounded-2xl border border-slate-200 border-dashed">
+                     <p className="text-slate-400 text-sm font-medium">No notification history found.</p>
+                   </div>
+                 ) : (
+                   memberLogs.map((log) => (
+                     <div key={log.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                       <div className="flex justify-between items-start mb-2">
+                          <span className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-md ${
+                            log.type === 'promotion' ? 'bg-purple-100 text-purple-700' :
+                            log.type === 'reminder' ? 'bg-orange-100 text-orange-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {log.type}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-400">{new Date(log.timestamp).toLocaleString()}</span>
+                       </div>
+                       <p className="text-sm text-slate-700 leading-relaxed">
+                         <MessageSquare className="w-3.5 h-3.5 inline mr-1 text-slate-400" />
+                         {log.message}
+                       </p>
+                       <div className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-emerald-600">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Sent Successfully
+                       </div>
+                     </div>
+                   ))
                  )}
               </div>
            </div>
