@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Member, Subscription, PaymentType } from '../types';
 import { Search, Filter, CreditCard, CheckCircle2, Clock, DollarSign, Download, ChevronRight, MessageSquare, Calendar } from 'lucide-react';
 import { makeDualDateValueFromAd, getNepaliToday } from '@etpl/nepali-datepicker';
+import { formatNepaliDate } from '../utils';
 
 const NEPALI_MONTHS = [
   'Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin',
@@ -240,7 +241,7 @@ const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick, priva
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-800 truncate">{record.member.name}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">{record.sub.planName} · {record.bsDate}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">{record.sub.planName} · {formatNepaliDate(record.bsDate)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -274,7 +275,7 @@ const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick, priva
                       )}
                     </div>
                     {/* @ts-ignore */}
-                    <span className="text-xs text-slate-500 font-bold">{record.bsDate}</span>
+                    <span className="text-xs text-slate-500 font-bold">{formatNepaliDate(record.bsDate)}</span>
                     <div className="text-right">
                       <p className="text-sm font-bold text-slate-800">NPR {privacyMode ? '••••' : record.amount.toLocaleString()}</p>
                       {record.sub.payment.method && record.type === 'completed' && (

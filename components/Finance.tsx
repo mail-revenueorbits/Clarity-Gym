@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Member, PaymentType, Expense, InventorySale } from '../types';
 import { TrendingUp, TrendingDown, DollarSign, PieChart, Download, CalendarDays, Plus, Trash2, Calendar } from 'lucide-react';
 import { makeDualDateValueFromAd, getNepaliToday } from '@etpl/nepali-datepicker';
+import { formatNepaliDate } from '../utils';
 
 const NEPALI_MONTHS = [
   'Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin',
@@ -380,7 +381,7 @@ const Finance: React.FC<FinanceProps> = ({ members, expenses, inventorySales, on
                     </div>
                     <div>
                       <p className="text-sm font-bold text-slate-800">{exp.title}</p>
-                      <p className="text-xs text-slate-500 font-bold">{exp.category} · {dual.formatted.bs}</p>
+                      <p className="text-xs text-slate-500 font-bold">{exp.category} · {formatNepaliDate(dual.formatted.bs)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">

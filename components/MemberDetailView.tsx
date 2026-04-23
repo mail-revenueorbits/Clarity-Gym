@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Member, Subscription, PaymentType } from '../types';
 import { ArrowLeft, User, Phone, MapPin, Calendar, HeartPulse, Edit2, Plus, CreditCard, Clock, CheckCircle2, Trash2, Bell, MessageSquare } from 'lucide-react';
 import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
+import { getFormattedBsDate } from '../utils';
 import SubscriptionFormModal from './SubscriptionFormModal';
 import { LogEntry } from './Notifications';
 
@@ -12,9 +13,10 @@ interface MemberDetailViewProps {
   onSaveSubscription: (memberId: string, subscription: Subscription) => void;
   onDeleteMember: (id: string) => void;
   notificationLogs?: LogEntry[];
+  onImageClick?: (url: string, name: string) => void;
 }
 
-const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onEditMember, onSaveSubscription, onDeleteMember, notificationLogs = [] }) => {
+const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onEditMember, onSaveSubscription, onDeleteMember, notificationLogs = [], onImageClick }) => {
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [editingSub, setEditingSub] = useState<Subscription | undefined>(undefined);
 
@@ -70,7 +72,14 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
              <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/5 blur-3xl rounded-full"></div>
              
              <div className="flex justify-between items-start mb-6 relative">
-                 <div className="w-20 h-20 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center font-bold text-3xl shadow-sm overflow-hidden border-2 border-white">
+                 <div 
+                   className="w-20 h-20 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center font-bold text-3xl shadow-sm overflow-hidden border-2 border-white cursor-zoom-in"
+                   onClick={() => {
+                     if (member.profilePicture) {
+                       onImageClick?.(member.profilePicture, member.name);
+                     }
+                   }}
+                 >
                    {member.profilePicture ? (
                      <img src={member.profilePicture} alt={member.name} className="w-full h-full object-cover" />
                    ) : (
@@ -92,8 +101,8 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
                  {member.gender && <div className="flex items-center gap-3 text-slate-600"><User className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">{member.gender}</span></div>}
                  <div className="flex items-center gap-3 text-slate-600"><Phone className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">{member.phone}</span></div>
                  {member.email && <div className="flex items-center gap-3 text-slate-600"><User className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium truncate">{member.email}</span></div>}
-                 {member.dob && <div className="flex items-center gap-3 text-slate-600"><Calendar className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">DOB: {makeDualDateValueFromAd(new Date(member.dob)).formatted.bs}</span></div>}
-                 <div className="flex items-center gap-3 text-slate-600"><Calendar className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">Joined {member.joinedDate ? makeDualDateValueFromAd(new Date(member.joinedDate)).formatted.bs : '—'}</span></div>
+                 {member.dob && <div className="flex items-center gap-3 text-slate-600"><Calendar className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">DOB: {getFormattedBsDate(member.dob)}</span></div>}
+                 <div className="flex items-center gap-3 text-slate-600"><Calendar className="w-5 h-5 text-slate-400 shrink-0"/> <span className="font-medium">Joined {member.joinedDate ? getFormattedBsDate(member.joinedDate) : '—'}</span></div>
                  {member.accessLevel && <div className="flex items-center gap-3"><span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold uppercase">{member.accessLevel}</span></div>}
               </div>
           </div>
@@ -157,7 +166,7 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
                                   <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 mt-3">
                                      <div className="flex items-center gap-2 text-slate-600 text-sm font-medium">
                                         <Clock className="w-4 h-4 text-slate-400" />
-                                        <span>{sub.startDate ? makeDualDateValueFromAd(new Date(sub.startDate)).formatted.bs : '—'} <span className="text-slate-400 mx-1">to</span> {sub.endDate ? makeDualDateValueFromAd(new Date(sub.endDate)).formatted.bs : '—'}</span>
+                                        <span>{sub.startDate ? getFormattedBsDate(sub.startDate) : '—'} <span className="text-slate-400 mx-1">to</span> {sub.endDate ? getFormattedBsDate(sub.endDate) : '—'}</span>
                                      </div>
                                   </div>
                                   {sub.notes && <p className="mt-3 text-sm text-slate-500 bg-slate-50 p-2 rounded-lg italic">"{sub.notes}"</p>}

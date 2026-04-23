@@ -3,9 +3,25 @@
 @tailwind utilities;
 
 @layer base {
-  body {
-    background-color: #f8fafc;
+  html, body, #root {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100% !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    background-color: white !important;
   }
+
+  /* HTML Hijack: Turn root dark when a modal is open */
+  html:has(.backdrop-blur-sm), html:has(.backdrop-blur-sm) body, html:has(.backdrop-blur-sm) #root {
+    background-color: #0f172a !important;
+  }
+}
+
+/* Clean, neutral backdrops */
+.backdrop-blur-sm, .backdrop-blur-md, .backdrop-blur-lg {
+    backdrop-filter: blur(8px) saturate(100%) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(100%) !important;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */

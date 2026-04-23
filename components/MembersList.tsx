@@ -2,21 +2,35 @@ import React, { useState, useMemo } from 'react';
 import { Member } from '../types';
 import { Search, UserPlus, Filter, ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight } from 'lucide-react';
 import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
+import { getFormattedBsDate } from '../utils';
 
 interface MembersListProps {
   members: Member[];
   onAddClick: () => void;
   onMemberClick: (id: string) => void;
+  initialFilter?: string;
+  onFilterChange?: (filter: string) => void;
+  onImageClick?: (url: string, name: string) => void;
 }
 
 type SortKey = 'name' | 'memberNumber' | 'joinedDate' | 'accessLevel' | 'status';
 type SortDir = 'asc' | 'desc';
 
-const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMemberClick }) => {
+const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMemberClick, initialFilter = 'all', onFilterChange, onImageClick }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStr, setFilterStr] = useState<'all' | 'active' | 'inactive'>('all');
+  const [filterStr, setFilterStr] = useState<string>(initialFilter);
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  // Sync with initialFilter from props (useful for See All buttons)
+  React.useEffect(() => {
+    setFilterStr(initialFilter);
+  }, [initialFilter]);
+
+  const handleFilterChange = (val: string) => {
+    setFilterStr(val);
+    onFilterChange?.(val);
+  };
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -55,7 +69,31 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
         const s = searchTerm.toLowerCase();
         return m.name.toLowerCase().includes(s) || m.phone.includes(s) || m.memberNumber.toLowerCase().includes(s);
       })
-      .filter(m => filterStr === 'all' || getMemberStatus(m) === filterStr)
+      .filter(m => {
+        if (filterStr === 'all') return true;
+        if (filterStr === 'active') return getMemberStatus(m) === 'active';
+        if (filterStr === 'inactive') return getMemberStatus(m) === 'inactive';
+        
+        const mEndDate = getActiveEndDate(m);
+        const in3Days = new Date();
+        in3Days.setDate(in3Days.getDate() + 3);
+        const in3DaysStr = in3Days.toISOString().split('T')[0];
+        const lastWeek = new Date();
+        lastWeek.setDate(lastWeek.getDate() - 7);
+        const lastWeekStr = lastWeek.toISOString().split('T')[0];
+        const todayStrLocal = new Date().toISOString().split('T')[0];
+
+        if (filterStr === 'pending') {
+          return m.subscriptions.some(s => !s.payment.remainingPaid);
+        }
+        if (filterStr === 'expiring') {
+          return mEndDate && mEndDate >= todayStrLocal && mEndDate <= in3DaysStr;
+        }
+        if (filterStr === 'expired') {
+          return mEndDate && mEndDate >= lastWeekStr && mEndDate < todayStrLocal;
+        }
+        return true;
+      })
       .sort((a, b) => {
         let valA: string, valB: string;
         switch (sortKey) {
@@ -106,12 +144,15 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
           <Filter className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <select
             value={filterStr}
-            onChange={e => setFilterStr(e.target.value as any)}
+            onChange={e => handleFilterChange(e.target.value)}
             className="appearance-none pl-9 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400 cursor-pointer shadow-sm"
           >
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="all">All Members</option>
+            <option value="active">Active Only</option>
+            <option value="inactive">Inactive Only</option>
+            <option value="pending">Pending Dues</option>
+            <option value="expiring">Expiring Soon</option>
+            <option value="expired">Expired Recently</option>
           </select>
         </div>
       </div>
@@ -174,7 +215,15 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
                   {/* Mobile card layout */}
                   <div className="md:hidden flex items-center justify-between px-4 py-3">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0 overflow-hidden">
+                      <div 
+                        className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0 overflow-hidden cursor-zoom-in"
+                        onClick={(e) => {
+                          if (member.profilePicture) {
+                            e.stopPropagation();
+                            onImageClick?.(member.profilePicture, member.name);
+                          }
+                        }}
+                      >
                         {member.thumbnail
                           ? <img src={member.thumbnail} alt="" className="w-full h-full object-cover" />
                           : member.name.charAt(0)
@@ -197,7 +246,15 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
                   {/* Desktop grid layout */}
                   <div className="hidden md:grid grid-cols-[1fr_140px_120px_120px_100px_130px_36px] items-center px-5 py-3.5">
                     <div className="flex items-center gap-3 overflow-hidden min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0 overflow-hidden">
+                      <div 
+                        className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0 overflow-hidden cursor-zoom-in"
+                        onClick={(e) => {
+                          if (member.profilePicture) {
+                            e.stopPropagation();
+                            onImageClick?.(member.profilePicture, member.name);
+                          }
+                        }}
+                      >
                         {member.thumbnail
                           ? <img src={member.thumbnail} alt="" className="w-full h-full object-cover" />
                           : member.name.charAt(0)
@@ -206,8 +263,8 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
                       <p className="text-sm font-semibold text-slate-800 group-hover:text-red-600 transition-colors truncate">{member.name}</p>
                     </div>
                     <span className="text-xs font-medium text-slate-500 truncate">{member.accessLevel || '—'}</span>
-                    <span className="text-xs text-slate-400 font-medium">{member.joinedDate ? makeDualDateValueFromAd(new Date(member.joinedDate)).formatted.bs : '—'}</span>
-                    <span className="text-xs text-slate-400 font-medium">{endDate ? makeDualDateValueFromAd(new Date(endDate)).formatted.bs : <span className="text-slate-300">—</span>}</span>
+                    <span className="text-xs text-slate-400 font-medium">{member.joinedDate ? getFormattedBsDate(member.joinedDate) : '—'}</span>
+                    <span className="text-xs text-slate-400 font-medium">{endDate ? getFormattedBsDate(endDate) : <span className="text-slate-300">—</span>}</span>
                     <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${statusColor}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${statusBg}`} />
                       {statusText}

@@ -29,6 +29,7 @@ export interface InventoryItem {
   category: 'Supplement' | 'Merchandise' | 'Beverage' | 'Other';
   quantity: number;
   price: number;
+  purchasePrice: number;
 }
 
 export interface InventorySale {

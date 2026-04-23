@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Expense } from '../types';
 import { TrendingDown, Plus, Search, Filter, CalendarDays, DollarSign, Edit2, Trash2 } from 'lucide-react';
 import { NepaliDatePicker, makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
+import { getFormattedBsDate } from '../utils';
 
 interface ExpensesProps {
   expenses: Expense[];
@@ -147,7 +148,7 @@ const Expenses: React.FC<ExpensesProps> = ({ expenses, onAddExpense, onDeleteExp
                     <td className="px-6 py-4">
                       <div className="font-bold text-slate-700 flex items-center gap-2">
                         <CalendarDays className="w-4 h-4 text-slate-400" />
-                        {makeDualDateValueFromAd(new Date(expense.date)).formatted.bs}
+                         {getFormattedBsDate(expense.date)}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -189,7 +190,7 @@ const Expenses: React.FC<ExpensesProps> = ({ expenses, onAddExpense, onDeleteExp
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-slate-800 truncate">{expense.title}</p>
-                    <p className="text-[10px] text-slate-400 font-medium">{expense.category} · {makeDualDateValueFromAd(new Date(expense.date)).formatted.bs}</p>
+                    <p className="text-[10px] text-slate-400 font-medium">{expense.category} · {getFormattedBsDate(expense.date)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -205,8 +206,8 @@ const Expenses: React.FC<ExpensesProps> = ({ expenses, onAddExpense, onDeleteExp
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed -top-10 -bottom-10 -left-10 -right-10 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto relative z-[10000]">
             <div className="px-4 md:px-6 py-4 md:py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <h2 className="text-lg md:text-xl font-bold text-slate-800">Record Expense</h2>
             </div>

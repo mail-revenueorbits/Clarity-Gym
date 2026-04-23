@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Member } from '../types';
 import { Bell, Send, MessageSquare, Clock, CheckCircle2, Users, Search, Filter, ChevronLeft, ChevronRight, CheckSquare, Square, X, Eye } from 'lucide-react';
 import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
+import { getFormattedBsDate } from '../utils';
 
 interface NotificationsProps {
   members: Member[];
@@ -38,17 +39,20 @@ const Notifications: React.FC<NotificationsProps> = ({ members, logs, onAddLog, 
 
   // Compose State
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'promotion' | 'reminder' | 'alert'>('promotion');
   const [isSending, setIsSending] = useState(false);
-  const [targetMode, setTargetMode] = useState<'demographics' | 'manual'>('demographics');
   
-  // Demographics Filters
+  // Demographics & Plan Filters
   const [minAge, setMinAge] = useState<number | ''>(15);
   const [maxAge, setMaxAge] = useState<number | ''>(60);
   const [genderFilter, setGenderFilter] = useState<'All' | 'Male' | 'Female'>('All');
+  const [packageFilter, setPackageFilter] = useState<string>('All');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Expiring 3d' | 'Expiring 7d' | 'Expired'>('All');
   
   // Manual Selection State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
+  const [showMemberList, setShowMemberList] = useState(false);
 
   // History Pagination & Filtering
   const [logFilter, setLogFilter] = useState<'all' | 'promotion' | 'reminder' | 'alert'>('all');
@@ -107,28 +111,88 @@ const Notifications: React.FC<NotificationsProps> = ({ members, logs, onAddLog, 
   // Derived Audience Calculation
   const activeMembers = useMemo(() => members.filter(m => !m.isDeleted), [members]);
 
-  const targetAudience = useMemo(() => {
-    if (targetMode === 'demographics') {
-      return activeMembers.filter(m => {
-        const age = calculateAge(m.dob);
-        const ageMatch = (minAge === '' || age >= minAge) && (maxAge === '' || age <= maxAge);
-        const genderMatch = genderFilter === 'All' || m.gender === genderFilter;
-        return ageMatch && genderMatch;
-      });
-    } else {
-      return activeMembers.filter(m => selectedMemberIds.has(m.id));
-    }
-  }, [activeMembers, targetMode, minAge, maxAge, genderFilter, selectedMemberIds]);
+  const membersMatchingFilters = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  const filteredManualMembers = useMemo(() => {
-    if (!searchQuery.trim()) return activeMembers;
-    const query = searchQuery.toLowerCase();
-    return activeMembers.filter(m => 
-      m.name.toLowerCase().includes(query) || 
-      m.phone.includes(query) || 
-      m.memberNumber.toLowerCase().includes(query)
-    );
-  }, [activeMembers, searchQuery]);
+    return activeMembers.filter(m => {
+      // Demographics match
+      const age = calculateAge(m.dob);
+      const ageMatch = (minAge === '' || age >= minAge) && (maxAge === '' || age <= maxAge);
+      const genderMatch = genderFilter === 'All' || m.gender === genderFilter;
+      
+      // Package match
+      const packageMatch = packageFilter === 'All' || m.accessLevel === packageFilter;
+
+      // Status match
+      let statusMatch = true;
+      const activeSub = m.subscriptions.find(s => s.isActive);
+      
+      if (statusFilter !== 'All') {
+        if (!activeSub) {
+          statusMatch = statusFilter === 'Expired';
+        } else {
+          const endDate = new Date(activeSub.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          const diffDays = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+          if (statusFilter === 'Active') statusMatch = diffDays >= 0;
+          else if (statusFilter === 'Expiring 3d') statusMatch = diffDays >= 0 && diffDays <= 3;
+          else if (statusFilter === 'Expiring 7d') statusMatch = diffDays >= 0 && diffDays <= 7;
+          else if (statusFilter === 'Expired') statusMatch = diffDays < 0;
+        }
+      }
+
+      // Search match
+      const query = searchQuery.toLowerCase();
+      const searchMatch = !query || 
+        m.name.toLowerCase().includes(query) || 
+        m.phone.includes(query) || 
+        m.memberNumber.toLowerCase().includes(query);
+        
+      return ageMatch && genderMatch && packageMatch && statusMatch && searchMatch;
+    });
+  }, [activeMembers, minAge, maxAge, genderFilter, packageFilter, statusFilter, searchQuery]);
+
+  const displayMembers = useMemo(() => {
+    const matched = [];
+    const others = [];
+    
+    // Create a set of IDs that match filters for fast lookup
+    const matchedIds = new Set(membersMatchingFilters.map(m => m.id));
+    
+    for (const member of activeMembers) {
+      if (matchedIds.has(member.id)) {
+        matched.push(member);
+      } else {
+        others.push(member);
+      }
+    }
+    
+    return { matched, others };
+  }, [activeMembers, membersMatchingFilters]);
+
+  // Auto-set message type based on status filter
+  useEffect(() => {
+    if (statusFilter === 'Expiring 3d' || statusFilter === 'Expiring 7d') {
+      setMessageType('reminder');
+    } else if (statusFilter === 'Expired') {
+      setMessageType('alert');
+    } else {
+      setMessageType('promotion');
+    }
+  }, [statusFilter]);
+
+  // Auto-sync selection when filters change
+  useEffect(() => {
+    const newSet = new Set<string>();
+    membersMatchingFilters.forEach(m => newSet.add(m.id));
+    setSelectedMemberIds(newSet);
+  }, [membersMatchingFilters]);
+
+  const targetAudience = useMemo(() => {
+    return activeMembers.filter(m => selectedMemberIds.has(m.id));
+  }, [activeMembers, selectedMemberIds]);
 
   const toggleMemberSelection = (id: string) => {
     const newSet = new Set(selectedMemberIds);
@@ -139,7 +203,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members, logs, onAddLog, 
 
   const selectAllFiltered = () => {
     const newSet = new Set(selectedMemberIds);
-    filteredManualMembers.forEach(m => newSet.add(m.id));
+    membersMatchingFilters.forEach(m => newSet.add(m.id));
     setSelectedMemberIds(newSet);
   };
 
@@ -155,7 +219,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members, logs, onAddLog, 
     setTimeout(() => {
       const newLog: LogEntry = {
         id: crypto.randomUUID(),
-        type: 'promotion',
+        type: messageType,
         message: message,
         recipientsCount: targetAudience.length,
         recipientNames: targetAudience.map(m => m.name),
@@ -257,49 +321,32 @@ const Notifications: React.FC<NotificationsProps> = ({ members, logs, onAddLog, 
                   <p className="text-sm text-slate-500">Define who should receive this message.</p>
                 </div>
 
-                {/* Mode Selector */}
-                <div className="flex p-1 bg-slate-100 rounded-lg">
-                  <button
-                    onClick={() => setTargetMode('demographics')}
-                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${targetMode === 'demographics' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    Demographics
-                  </button>
-                  <button
-                    onClick={() => setTargetMode('manual')}
-                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${targetMode === 'manual' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    Select Members
-                  </button>
-                </div>
-
-                {/* Target Mode: Demographics */}
-                {targetMode === 'demographics' && (
-                  <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Min Age</label>
-                        <input
-                          type="number"
-                          value={minAge}
-                          onChange={(e) => setMinAge(e.target.value ? parseInt(e.target.value) : '')}
-                          placeholder="e.g. 15"
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 shadow-sm focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Max Age</label>
-                        <input
-                          type="number"
-                          value={maxAge}
-                          onChange={(e) => setMaxAge(e.target.value ? parseInt(e.target.value) : '')}
-                          placeholder="e.g. 60"
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 shadow-sm focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm outline-none"
-                        />
-                      </div>
+                {/* Unified Selection Interface */}
+                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+                  {/* Demographics Row */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Min Age</label>
+                      <input
+                        type="number"
+                        value={minAge}
+                        onChange={(e) => setMinAge(e.target.value ? parseInt(e.target.value) : '')}
+                        placeholder="15"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 shadow-sm focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm outline-none"
+                      />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-700 mb-1">Gender Focus</label>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Max Age</label>
+                      <input
+                        type="number"
+                        value={maxAge}
+                        onChange={(e) => setMaxAge(e.target.value ? parseInt(e.target.value) : '')}
+                        placeholder="60"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 shadow-sm focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Gender</label>
                       <select
                         value={genderFilter}
                         onChange={(e) => setGenderFilter(e.target.value as any)}
@@ -310,53 +357,152 @@ const Notifications: React.FC<NotificationsProps> = ({ members, logs, onAddLog, 
                         <option value="Female">Female Only</option>
                       </select>
                     </div>
-                  </div>
-                )}
-
-                {/* Target Mode: Manual */}
-                {targetMode === 'manual' && (
-                  <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-col h-[300px]">
-                    <div className="relative mb-3 shrink-0">
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="Search members..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-red-500 focus:ring-red-500"
-                      />
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Package Type</label>
+                      <select
+                        value={packageFilter}
+                        onChange={(e) => setPackageFilter(e.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 shadow-sm focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm outline-none bg-white"
+                      >
+                        <option value="All">All Packages</option>
+                        <option value="Gym">Gym Only</option>
+                        <option value="Gym + Cardio">Gym + Cardio</option>
+                        <option value="Gym + Cardio + PT">Gym + Cardio + PT</option>
+                      </select>
                     </div>
-                    <div className="flex justify-between items-center mb-2 px-1 shrink-0">
-                      <span className="text-xs font-medium text-slate-500">{selectedMemberIds.size} selected</span>
-                      <div className="flex gap-2">
-                         <button onClick={selectAllFiltered} className="text-xs text-blue-600 hover:underline">Select All Filtered</button>
-                         <button onClick={clearSelection} className="text-xs text-slate-500 hover:underline">Clear</button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Expiration Status</label>
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 shadow-sm focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm outline-none bg-white"
+                      >
+                        <option value="All">All Statuses</option>
+                        <option value="Active">Active Members</option>
+                        <option value="Expiring 3d">Expiring in 3 Days</option>
+                        <option value="Expiring 7d">Expiring in 7 Days</option>
+                        <option value="Expired">Already Expired</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Search Name/Phone</label>
+                      <div className="relative">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Search members..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-red-500 focus:ring-red-500 outline-none"
+                        />
                       </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto space-y-1 bg-white border border-slate-200 rounded-lg p-1">
-                      {filteredManualMembers.length === 0 ? (
-                         <div className="text-center text-xs text-slate-400 p-4">No members found.</div>
-                      ) : (
-                        filteredManualMembers.map(m => {
-                          const isSelected = selectedMemberIds.has(m.id);
-                          return (
-                            <div 
-                              key={m.id} 
-                              onClick={() => toggleMemberSelection(m.id)}
-                              className={`flex items-center gap-3 p-2 rounded-md cursor-pointer hover:bg-slate-50 ${isSelected ? 'bg-red-50' : ''}`}
-                            >
-                              {isSelected ? <CheckSquare className="w-4 h-4 text-red-600" /> : <Square className="w-4 h-4 text-slate-300" />}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-slate-800 truncate">{m.name}</p>
-                                <p className="text-xs text-slate-500 truncate">{m.phone}</p>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
                   </div>
-                )}
+
+                  {/* Member Selection List Toggle */}
+                  <div className="flex flex-col mt-2">
+                    <div className="flex justify-between items-center mb-2 px-1 shrink-0">
+                      <span className="text-xs font-semibold text-slate-600">
+                        {membersMatchingFilters.length} members match current filters
+                      </span>
+                      <button 
+                        onClick={() => setShowMemberList(!showMemberList)}
+                        className="text-xs font-bold text-red-600 flex items-center gap-1 hover:bg-red-50 px-2 py-1 rounded-md transition-colors"
+                      >
+                        <Users className="w-3.5 h-3.5" />
+                        {showMemberList ? 'Hide Individual List' : 'Refine Selection (Show List)'}
+                      </button>
+                    </div>
+                    
+                    {showMemberList && (
+                      <div className="space-y-1">
+                        <div className="flex justify-end gap-3 mb-2 px-1">
+                           <button onClick={selectAllFiltered} className="text-[10px] font-bold text-blue-600 hover:underline">Select All Filtered</button>
+                           <button onClick={clearSelection} className="text-[10px] font-bold text-slate-500 hover:underline">Clear Selection</button>
+                        </div>
+                        <div className="h-[300px] overflow-y-auto space-y-1 bg-white border border-slate-200 rounded-lg p-1">
+                          {activeMembers.length === 0 ? (
+                             <div className="flex flex-col items-center justify-center h-full text-slate-400 p-4 space-y-2">
+                               <Users className="w-8 h-8 opacity-20" />
+                               <p className="text-xs">No members found.</p>
+                             </div>
+                          ) : (
+                            <>
+                              {/* Matched Members */}
+                              {displayMembers.matched.length > 0 && (
+                                <div className="space-y-1">
+                                  <div className="px-2 py-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 rounded uppercase tracking-wider sticky top-0 z-10">
+                                    Targeted by Filters ({displayMembers.matched.length})
+                                  </div>
+                                  {displayMembers.matched.map(m => {
+                                    const isSelected = selectedMemberIds.has(m.id);
+                                    return (
+                                      <div 
+                                        key={m.id} 
+                                        onClick={() => toggleMemberSelection(m.id)}
+                                        className={`flex items-center gap-3 p-2.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'bg-red-50 border-red-100' : 'hover:bg-slate-50'}`}
+                                      >
+                                        <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${isSelected ? 'bg-red-600 border-red-600' : 'border-slate-300 bg-white'}`}>
+                                          {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center justify-between">
+                                            <p className="text-sm font-bold text-slate-800 truncate">{m.name}</p>
+                                            <span className="text-[10px] text-slate-400 font-mono">{m.memberNumber}</span>
+                                          </div>
+                                          <div className="flex items-center justify-between">
+                                            <p className="text-xs text-slate-500 truncate">{m.phone}</p>
+                                            <p className="text-[10px] font-medium text-slate-400 uppercase">{m.gender} · {m.accessLevel} · {calculateAge(m.dob)} yrs</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Other Members */}
+                              {displayMembers.others.length > 0 && (
+                                <div className="space-y-1 mt-2">
+                                  <div className="px-2 py-1 text-[10px] font-bold text-slate-500 bg-slate-50 rounded uppercase tracking-wider sticky top-0 z-10">
+                                    Other Active Members ({displayMembers.others.length})
+                                  </div>
+                                  {displayMembers.others.map(m => {
+                                    const isSelected = selectedMemberIds.has(m.id);
+                                    return (
+                                      <div 
+                                        key={m.id} 
+                                        onClick={() => toggleMemberSelection(m.id)}
+                                        className={`flex items-center gap-3 p-2.5 rounded-md cursor-pointer transition-colors opacity-70 hover:opacity-100 ${isSelected ? 'bg-red-50 border-red-100' : 'hover:bg-slate-50'}`}
+                                      >
+                                        <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${isSelected ? 'bg-red-600 border-red-600' : 'border-slate-300 bg-white'}`}>
+                                          {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center justify-between">
+                                            <p className="text-sm font-bold text-slate-800 truncate">{m.name}</p>
+                                            <span className="text-[10px] text-slate-400 font-mono">{m.memberNumber}</span>
+                                          </div>
+                                          <div className="flex items-center justify-between">
+                                            <p className="text-xs text-slate-500 truncate">{m.phone}</p>
+                                            <p className="text-[10px] font-medium text-slate-400 uppercase">{m.gender} · {m.accessLevel} · {calculateAge(m.dob)} yrs</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
                 
                 {/* Selected Count Indicator */}
                 <div className={`p-4 rounded-xl border ${targetAudience.length > 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
@@ -375,6 +521,21 @@ const Notifications: React.FC<NotificationsProps> = ({ members, logs, onAddLog, 
                 </div>
 
                 <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 h-[calc(100%-4rem)] flex flex-col">
+                  <div className="grid grid-cols-1 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Message Category</label>
+                      <select
+                        value={messageType}
+                        onChange={(e) => setMessageType(e.target.value as any)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 shadow-sm focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm outline-none bg-white font-semibold"
+                      >
+                        <option value="promotion">Promotion (Marketing)</option>
+                        <option value="reminder">Reminder (Subscription)</option>
+                        <option value="alert">Alert (Emergency/Expired)</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div className="flex-1 flex flex-col mb-4">
                     <label className="block text-sm font-medium text-slate-700 mb-2">Message Content</label>
                     <textarea
@@ -465,7 +626,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members, logs, onAddLog, 
                                   {log.status}
                                 </span>
                               </div>
-                              <span className="text-xs text-slate-400">{makeDualDateValueFromAd(new Date(log.timestamp)).formatted.bs}</span>
+                              <span className="text-xs text-slate-400">{getFormattedBsDate(log.timestamp)}</span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span className={`px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded-md border ${
@@ -540,7 +701,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members, logs, onAddLog, 
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-800 capitalize">{selectedLog.type}</h2>
-                  <p className="text-xs text-slate-500 font-medium">{makeDualDateValueFromAd(new Date(selectedLog.timestamp)).formatted.bs}</p>
+                  <p className="text-xs text-slate-500 font-medium">{getFormattedBsDate(selectedLog.timestamp)}</p>
                 </div>
               </div>
               <button onClick={() => setSelectedLog(null)} className="p-2 hover:bg-slate-200 rounded-full text-slate-400 transition-colors">

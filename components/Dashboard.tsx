@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Member, Subscription, PaymentType, Expense, InventorySale } from '../types';
 import { Users, UserPlus, CreditCard, AlertCircle, CalendarDays, Activity, MessageSquare, CheckCircle2, AlertTriangle, IndianRupee } from 'lucide-react';
 import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
+import { getFormattedBsDate } from '../utils';
 
 interface DashboardProps {
   members: Member[];
@@ -10,9 +11,11 @@ interface DashboardProps {
   onMemberClick: (id: string) => void;
   onAddMember: () => void;
   privacyMode: boolean;
+  onSeeAll: (filter: string) => void;
+  onImageClick?: (url: string, name: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ members, expenses, inventorySales, onMemberClick, onAddMember, privacyMode }) => {
+const Dashboard: React.FC<DashboardProps> = ({ members, expenses, inventorySales, onMemberClick, onAddMember, privacyMode, onSeeAll, onImageClick }) => {
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
   
@@ -168,21 +171,37 @@ const Dashboard: React.FC<DashboardProps> = ({ members, expenses, inventorySales
            {/* Pending Dues */}
            <div className="bg-white rounded-3xl border border-red-100 shadow-sm overflow-hidden">
              <div className="px-6 pt-6 pb-4 border-b border-slate-50 flex items-center justify-between bg-red-50/30">
-               <div>
-                 <h2 className="text-lg font-bold text-red-900 flex items-center gap-2">
-                   <AlertTriangle className="w-5 h-5 text-red-600" /> Pending Dues
-                 </h2>
-                 <p className="text-red-500 text-xs font-medium mt-0.5">Members owing money. Stop them at the desk!</p>
-               </div>
-             </div>
+                <div>
+                  <h2 className="text-lg font-bold text-red-900 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-600" /> Pending Dues
+                  </h2>
+                  <p className="text-red-500 text-xs font-medium mt-0.5">Members owing money. Stop them at the desk!</p>
+                </div>
+                {pendingDues.length > 3 && (
+                  <button onClick={() => onSeeAll('pending')} className="text-xs font-bold text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors border border-red-200">
+                    See All ({pendingDues.length})
+                  </button>
+                )}
+              </div>
              <div className="divide-y divide-slate-50">
                {pendingDues.length === 0 ? (
                  <div className="py-12 text-center text-slate-400 text-sm font-medium">All dues cleared! Great job.</div>
-               ) : pendingDues.map((item, idx) => (
+               ) : pendingDues.slice(0, 3).map((item, idx) => (
                  <div key={idx} onClick={() => onMemberClick(item.member.id)} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 cursor-pointer transition-colors group">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-sm font-bold text-red-600 shrink-0">
-                        {item.member.name.charAt(0)}
+                      <div 
+                        className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-sm font-bold text-red-600 shrink-0 overflow-hidden cursor-zoom-in"
+                        onClick={(e) => {
+                          if (item.member.profilePicture) {
+                            e.stopPropagation();
+                            onImageClick?.(item.member.profilePicture, item.member.name);
+                          }
+                        }}
+                      >
+                        {item.member.thumbnail 
+                          ? <img src={item.member.thumbnail} alt="" className="w-full h-full object-cover" />
+                          : item.member.name.charAt(0)
+                        }
                       </div>
                       <div>
                         <p className="text-sm font-bold text-slate-800 group-hover:text-red-600 transition-colors">{item.member.name}</p>
@@ -213,25 +232,41 @@ const Dashboard: React.FC<DashboardProps> = ({ members, expenses, inventorySales
            {/* Expiring Soon */}
            <div className="bg-white rounded-3xl border border-amber-100 shadow-sm overflow-hidden">
              <div className="px-6 pt-6 pb-4 border-b border-slate-50 flex items-center justify-between bg-amber-50/30">
-               <div>
-                 <h2 className="text-lg font-bold text-amber-900 flex items-center gap-2">
-                   <CalendarDays className="w-5 h-5 text-amber-500" /> Expiring Soon (3 Days)
-                 </h2>
-                 <p className="text-amber-600 text-xs font-medium mt-0.5">Remind them to renew when they walk in</p>
-               </div>
-             </div>
+                <div>
+                  <h2 className="text-lg font-bold text-amber-900 flex items-center gap-2">
+                    <CalendarDays className="w-5 h-5 text-amber-500" /> Expiring Soon (3 Days)
+                  </h2>
+                  <p className="text-amber-600 text-xs font-medium mt-0.5">Remind them to renew when they walk in</p>
+                </div>
+                {expiringSoon.length > 3 && (
+                  <button onClick={() => onSeeAll('expiring')} className="text-xs font-bold text-amber-600 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors border border-amber-200">
+                    See All ({expiringSoon.length})
+                  </button>
+                )}
+              </div>
              <div className="divide-y divide-slate-50">
                {expiringSoon.length === 0 ? (
                  <div className="py-12 text-center text-slate-400 text-sm font-medium">No one expiring in the next 3 days.</div>
-               ) : expiringSoon.map((item, idx) => (
+               ) : expiringSoon.slice(0, 3).map((item, idx) => (
                  <div key={idx} onClick={() => onMemberClick(item.member.id)} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 cursor-pointer transition-colors group">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-sm font-bold text-amber-600 shrink-0">
-                        {item.member.name.charAt(0)}
+                      <div 
+                        className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-sm font-bold text-amber-600 shrink-0 overflow-hidden cursor-zoom-in"
+                        onClick={(e) => {
+                          if (item.member.profilePicture) {
+                            e.stopPropagation();
+                            onImageClick?.(item.member.profilePicture, item.member.name);
+                          }
+                        }}
+                      >
+                        {item.member.thumbnail 
+                          ? <img src={item.member.thumbnail} alt="" className="w-full h-full object-cover" />
+                          : item.member.name.charAt(0)
+                        }
                       </div>
                       <div>
                         <p className="text-sm font-bold text-slate-800 group-hover:text-amber-600 transition-colors">{item.member.name}</p>
-                        <p className="text-xs text-slate-500 font-medium">Ends on {item.sub.endDate ? makeDualDateValueFromAd(new Date(item.sub.endDate)).formatted.bs : '—'}</p>
+                        <p className="text-xs text-slate-500 font-medium">Ends on {item.sub.endDate ? getFormattedBsDate(item.sub.endDate) : '—'}</p>
                       </div>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); alert(`Sent renewal reminder to ${item.member.name}`); }} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Send SMS Reminder">
@@ -245,25 +280,41 @@ const Dashboard: React.FC<DashboardProps> = ({ members, expenses, inventorySales
            {/* Expired This Week */}
            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
              <div className="px-6 pt-6 pb-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-               <div>
-                 <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                   <AlertCircle className="w-5 h-5 text-slate-500" /> Expired Recently
-                 </h2>
-                 <p className="text-slate-500 text-xs font-medium mt-0.5">Packages that ended in the last 7 days</p>
-               </div>
-             </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-slate-500" /> Expired Recently
+                  </h2>
+                  <p className="text-slate-500 text-xs font-medium mt-0.5">Packages that ended in the last 7 days</p>
+                </div>
+                {expiredThisWeek.length > 3 && (
+                  <button onClick={() => onSeeAll('expired')} className="text-xs font-bold text-slate-600 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors border border-slate-300">
+                    See All ({expiredThisWeek.length})
+                  </button>
+                )}
+              </div>
              <div className="divide-y divide-slate-50">
                {expiredThisWeek.length === 0 ? (
                  <div className="py-12 text-center text-slate-400 text-sm font-medium">No recent expirations. Retention is 100%!</div>
-               ) : expiredThisWeek.map((item, idx) => (
+               ) : expiredThisWeek.slice(0, 3).map((item, idx) => (
                  <div key={idx} onClick={() => onMemberClick(item.member.id)} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 cursor-pointer transition-colors group">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-500 shrink-0">
-                        {item.member.name.charAt(0)}
+                      <div 
+                        className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-500 shrink-0 overflow-hidden cursor-zoom-in"
+                        onClick={(e) => {
+                          if (item.member.profilePicture) {
+                            e.stopPropagation();
+                            onImageClick?.(item.member.profilePicture, item.member.name);
+                          }
+                        }}
+                      >
+                        {item.member.thumbnail 
+                          ? <img src={item.member.thumbnail} alt="" className="w-full h-full object-cover" />
+                          : item.member.name.charAt(0)
+                        }
                       </div>
                       <div>
                         <p className="text-sm font-bold text-slate-800 group-hover:text-slate-600 transition-colors">{item.member.name}</p>
-                        <p className="text-xs text-red-500 font-medium">Ended {item.sub.endDate ? makeDualDateValueFromAd(new Date(item.sub.endDate)).formatted.bs : '—'}</p>
+                        <p className="text-xs text-red-500 font-medium">Ended {item.sub.endDate ? getFormattedBsDate(item.sub.endDate) : '—'}</p>
                       </div>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); alert(`Sent win-back SMS to ${item.member.name}`); }} className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors" title="Send SMS Win-back">

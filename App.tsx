@@ -15,6 +15,7 @@ import Finance from './components/Finance';
 import { useAuth } from './components/AuthContext';
 import { LayoutDashboard, Menu, X, Users, PackageOpen, CreditCard, Loader2, LogOut, Eye, EyeOff, Bell, TrendingDown, Settings as SettingsIcon, BarChart3 } from 'lucide-react';
 import { memberService } from './services/memberService';
+import { inventoryService } from './services/inventoryService';
 
 const ClarityIcon = ({ className }: { className?: string }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -35,21 +36,27 @@ const App = () => {
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'member-details' | 'payment-logs' | 'notifications' | 'expenses' | 'inventory' | 'finance' | 'settings'>('dashboard');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-  const [privacyMode, setPrivacyMode] = useState(false);
+  const [membersFilter, setMembersFilter] = useState<string>('all');
+  const [privacyMode, setPrivacyMode] = useState(true);
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewingImage, setViewingImage] = useState<{ url: string, name: string } | null>(null);
 
   // --- History-aware navigation ---
   type TabId = typeof activeTab;
 
-  const navigateTo = useCallback((tab: TabId, memberId?: string | null) => {
+  const navigateTo = useCallback((tab: TabId, memberId?: string | null, filter?: string) => {
     setActiveTab(tab);
     if (tab === 'member-details' && memberId) {
       setSelectedMemberId(memberId);
     }
+    if (filter) {
+      setMembersFilter(filter);
+    }
     setIsMobileMenuOpen(false);
-    window.history.pushState({ tab, memberId: memberId || null }, '', '');
+    window.history.pushState({ tab, memberId: memberId || null, filter: filter || null }, '', '');
+    window.scrollTo(0, 0);
   }, []);
 
   // Listen for browser back / swipe-back
@@ -63,10 +70,14 @@ const App = () => {
         if (e.state.memberId) {
           setSelectedMemberId(e.state.memberId);
         }
+        if (e.state.filter) {
+          setMembersFilter(e.state.filter);
+        }
       } else {
         // No state — go to dashboard
         setActiveTab('dashboard');
       }
+      window.scrollTo(0, 0);
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -125,8 +136,14 @@ const App = () => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const membersData = await memberService.fetchMembers();
+        const [membersData, itemsData, salesData] = await Promise.all([
+          memberService.fetchMembers(),
+          inventoryService.fetchItems(),
+          inventoryService.fetchSales()
+        ]);
         setMembers(membersData);
+        setInventoryItems(itemsData);
+        setInventorySales(salesData);
       } catch (error) {
         console.error(error);
       } finally {
@@ -227,6 +244,39 @@ const App = () => {
     navigateTo('member-details', id);
   };
 
+  // --- Inventory Handlers ---
+  const handleAddItem = async (item: InventoryItem) => {
+    setInventoryItems(prev => [...prev, item]);
+    try {
+      const saved = await inventoryService.createItem(item);
+      setInventoryItems(prev => prev.map(i => i.id === item.id ? saved : i));
+    } catch (error) {
+      console.error(error);
+      setInventoryItems(prev => prev.filter(i => i.id !== item.id));
+    }
+  };
+
+  const handleUpdateItem = async (item: InventoryItem) => {
+    const old = inventoryItems.find(i => i.id === item.id);
+    setInventoryItems(prev => prev.map(i => i.id === item.id ? item : i));
+    try {
+      await inventoryService.updateItem(item);
+    } catch (error) {
+      console.error(error);
+      if (old) setInventoryItems(prev => prev.map(i => i.id === item.id ? old : i));
+    }
+  };
+
+  const handleAddSale = async (sale: InventorySale) => {
+    setInventorySales(prev => [sale, ...prev]);
+    try {
+      await inventoryService.recordSale(sale);
+    } catch (error) {
+      console.error(error);
+      setInventorySales(prev => prev.filter(s => s.id !== sale.id));
+    }
+  };
+
   const getHeaderTitle = () => {
     switch(activeTab) {
       case 'dashboard': return 'Dashboard';
@@ -243,9 +293,9 @@ const App = () => {
   const pageTitle = getHeaderTitle();
 
   return (
-    <>
+    <div className="fixed inset-0 w-full h-full bg-slate-50 overflow-hidden">
       {showSplash && (
-        <div className={`fixed inset-0 bg-red-600 flex flex-col items-center justify-center z-[100] transition-opacity duration-700 ease-in-out ${isSplashFading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <div className="fixed inset-0 bg-red-600 flex flex-col items-center justify-center z-[100] transition-opacity duration-700 ease-in-out">
           <div className="flex flex-col items-center">
              <ClarityIcon className="w-24 h-24 text-white mb-6 animate-pulse" />
              <h1 className="text-5xl font-bold text-white tracking-tighter mb-2">Clarity</h1>
@@ -254,9 +304,9 @@ const App = () => {
         </div>
       )}
 
-      <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+      <div className="absolute inset-0 flex flex-col md:flex-row bg-slate-50 text-slate-900 font-sans overflow-hidden">
         {/* Mobile Header */}
-        <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div className="flex md:hidden items-center justify-between px-4 py-3 bg-white border-b border-slate-200 sticky top-0 z-30 w-full shrink-0">
           <div className="flex items-center gap-2">
             <ClarityIcon className="w-5 h-5 text-red-600" />
             <span className="font-bold text-base text-slate-800">Clarity Gym</span>
@@ -271,13 +321,12 @@ const App = () => {
         {isMobileMenuOpen && (
           <div className="fixed inset-0 bg-black/40 z-30 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />
         )}
-
-        <nav className={`fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-slate-200 flex flex-col z-40 transition-transform duration-300 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-          <div className="p-5 flex items-center gap-3 border-b border-slate-100 h-16">
+        <nav className={`fixed md:relative left-0 top-0 bottom-0 w-64 bg-white border-r border-slate-200 flex flex-col z-40 transition-transform duration-300 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 shrink-0`}>
+          <div className="px-5 py-5 flex items-center gap-3 border-b border-slate-100 min-h-[64px] shrink-0">
             <ClarityIcon className="w-7 h-7 text-red-600 shrink-0" />
             <span className="font-bold text-lg text-slate-800">Clarity GYM</span>
           </div>
-          <div className="p-3 space-y-1 mt-2 flex-1 overflow-y-auto w-full">
+          <div className="p-3 space-y-1 mt-1 flex-1 overflow-y-auto w-full">
             {[
               { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
               { id: 'members', icon: Users, label: 'Members' },
@@ -326,14 +375,15 @@ const App = () => {
         </nav>
 
         {/* Main Content Area */}
-        <main className="md:ml-64 px-3 py-4 md:p-8 min-h-screen transition-all">
+        <main className="flex-1 h-full overflow-y-auto px-3 py-4 md:p-8 transition-all bg-slate-50 relative">
           <div className="animate-in fade-in duration-500">
             {isLoading && members.length === 0 ? (
               <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400 gap-4"><Loader2 className="w-8 h-8 animate-spin text-red-600" /><p>Loading data...</p></div>
             ) : (
               <>
-                  {activeTab === 'dashboard' && <Dashboard members={members} expenses={expenses} inventorySales={inventorySales} onMemberClick={handleMemberClick} onAddMember={handleOpenAddMember} privacyMode={privacyMode} />}
-                  {activeTab === 'members' && <MembersList members={members} onAddClick={handleOpenAddMember} onMemberClick={handleMemberClick} />}
+                  {activeTab === 'dashboard' && <Dashboard members={members} expenses={expenses} inventorySales={inventorySales} onMemberClick={handleMemberClick} onAddMember={handleOpenAddMember} privacyMode={privacyMode} onSeeAll={(f) => navigateTo('members', null, f)} onImageClick={(url, name) => setViewingImage({url, name})} />}
+                  {activeTab === 'members' && <MembersList members={members} onAddClick={handleOpenAddMember} onMemberClick={handleMemberClick} initialFilter={membersFilter} onFilterChange={setMembersFilter} onImageClick={(url, name) => setViewingImage({url, name})} />}
+                  {activeTab === 'inventory' && <Inventory items={inventoryItems} sales={inventorySales} onAddItem={handleAddItem} onUpdateItem={handleUpdateItem} onAddSale={handleAddSale} privacyMode={privacyMode} />}
                   {activeTab === 'member-details' && selectedMember && 
                      <MemberDetailView 
                          member={selectedMember} 
@@ -342,11 +392,11 @@ const App = () => {
                          onSaveSubscription={handleSaveSubscription}
                          onDeleteMember={handleDeleteMember}
                          notificationLogs={notificationLogs}
+                         onImageClick={(url, name) => setViewingImage({url, name})}
                      />
                   }
                   {activeTab === 'payment-logs' && <PaymentLogs members={members} onMemberClick={handleMemberClick} privacyMode={privacyMode} />}
                   {activeTab === 'expenses' && <Expenses expenses={expenses} onAddExpense={(e) => setExpenses([e, ...expenses])} onDeleteExpense={(id) => setExpenses(expenses.filter(e => e.id !== id))} privacyMode={privacyMode} />}
-                  {activeTab === 'inventory' && <Inventory items={inventoryItems} sales={inventorySales} onAddItem={(i) => setInventoryItems([i, ...inventoryItems])} onUpdateItem={(i) => setInventoryItems(inventoryItems.map(item => item.id === i.id ? i : item))} onAddSale={(s) => setInventorySales([s, ...inventorySales])} privacyMode={privacyMode} />}
                   {activeTab === 'finance' && <Finance members={members} expenses={expenses} inventorySales={inventorySales} onAddExpense={(e) => setExpenses([e, ...expenses])} onDeleteExpense={(id) => setExpenses(expenses.filter(e => e.id !== id))} privacyMode={privacyMode} />}
                   {activeTab === 'notifications' && <Notifications members={members} logs={notificationLogs} onAddLog={(log) => setNotificationLogs(prev => [log, ...prev].sort((a,b) => b.timestamp - a.timestamp))} credits={smsCredits} onUseCredits={(n) => setSmsCredits(prev => Math.max(0, prev - n))} />}
                   {activeTab === 'settings' && <Settings />}
@@ -362,8 +412,27 @@ const App = () => {
           initialData={editingMember}
           existingMembers={members}
         />
+
+        {/* Global Image Viewer Modal - Simple Centered Zoom */}
+        {viewingImage && (
+          <div 
+            className="fixed inset-0 z-[10000] flex flex-col items-center justify-center p-4 md:p-12 backdrop-blur-md animate-in fade-in duration-300"
+            onClick={() => setViewingImage(null)}
+          >
+            <div className="relative flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+               <img 
+                 src={viewingImage.url} 
+                 alt={viewingImage.name} 
+                 className="max-w-full max-h-[80vh] rounded-3xl shadow-2xl border border-white/10"
+               />
+               <h3 className="text-slate-900 text-xl font-bold tracking-tight bg-white/80 px-6 py-2 rounded-full backdrop-blur-md shadow-sm border border-white">
+                 {viewingImage.name}
+               </h3>
+            </div>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 

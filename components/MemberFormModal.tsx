@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Member } from '../types';
-import { X, UserPlus, FileEdit, Camera, Upload, Loader2 } from 'lucide-react';
+import { X, UserPlus, FileEdit, Camera, Upload, Loader2, Check } from 'lucide-react';
 import { NepaliDatePicker, makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
+import Cropper from 'react-easy-crop';
 
 interface MemberFormModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
   existingMembers = []
 }) => {
   const [formData, setFormData] = useState({
+    id: '',
     memberNumber: '',
     name: '',
     gender: '',
@@ -49,77 +51,140 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
     profilePicture: '',
     thumbnail: '',
   });
-
-  // Re-initialize form data every time the modal opens or initialData changes
-  useEffect(() => {
-    if (isOpen) {
-      setFormData({
-        memberNumber: initialData?.memberNumber || generateMemberNumber(existingMembers),
-        name: initialData?.name || '',
-        gender: initialData?.gender || '',
-        phone: initialData?.phone || '',
-        email: initialData?.email || '',
-        dob: initialData?.dob || '',
-        address: initialData?.address || '',
-        emergencyContact: initialData?.emergencyContact || '',
-        emergencyContact2: initialData?.emergencyContact2 || '',
-        bloodGroup: initialData?.bloodGroup || '',
-        accessLevel: initialData?.accessLevel || 'Gym',
-        joinedDate: initialData?.joinedDate || new Date().toISOString().split('T')[0],
-        notes: initialData?.notes || '',
-        profilePicture: initialData?.profilePicture || '',
-        thumbnail: initialData?.thumbnail || '',
-      });
-    }
-  }, [isOpen, initialData, existingMembers]);
-
+  
+  // Cropper State
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const processImage = (file: File): Promise<{ full: string, thumb: string }> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return reject('Could not get canvas context');
+  // Only initialize form data when the modal is FIRST opened or when the member to edit changes
+  useEffect(() => {
+    if (isOpen) {
+      if (!initialData) {
+        // Reset only if it was previously an edit or if it's genuinely empty
+        if (formData.id !== '' || formData.name === '') {
+          setFormData({
+            id: '',
+            memberNumber: generateMemberNumber(existingMembers),
+            name: '',
+            gender: '',
+            phone: '',
+            email: '',
+            dob: '',
+            address: '',
+            emergencyContact: '',
+            emergencyContact2: '',
+            bloodGroup: '',
+            accessLevel: 'Gym',
+            joinedDate: new Date().toISOString().split('T')[0],
+            notes: '',
+            profilePicture: '',
+            thumbnail: '',
+          });
+        }
+      } else if (formData.id !== initialData.id) {
+        // Only load data if we are switching members (or loading for first time)
+        setFormData({
+          id: initialData.id,
+          memberNumber: initialData.memberNumber,
+          name: initialData.name,
+          gender: initialData.gender || '',
+          phone: initialData.phone,
+          email: initialData.email || '',
+          dob: initialData.dob || '',
+          address: initialData.address || '',
+          emergencyContact: initialData.emergencyContact || '',
+          emergencyContact2: initialData.emergencyContact2 || '',
+          bloodGroup: initialData.bloodGroup || '',
+          accessLevel: initialData.accessLevel || 'Gym',
+          joinedDate: initialData.joinedDate || new Date().toISOString().split('T')[0],
+          notes: initialData.notes || '',
+          profilePicture: initialData.profilePicture || '',
+          thumbnail: initialData.thumbnail || '',
+        });
+      }
+    }
+  }, [isOpen, initialData]); 
 
-          const size = Math.min(img.width, img.height);
-          const x = (img.width - size) / 2;
-          const y = (img.height - size) / 2;
-
-          canvas.width = 1080;
-          canvas.height = 1080;
-          ctx.drawImage(img, x, y, size, size, 0, 0, 1080, 1080);
-          const full = canvas.toDataURL('image/jpeg', 0.4);
-
-          canvas.width = 128;
-          canvas.height = 128;
-          ctx.drawImage(img, x, y, size, size, 0, 0, 128, 128);
-          const thumb = canvas.toDataURL('image/jpeg', 0.3);
-
-          resolve({ full, thumb });
-        };
-        img.onerror = reject;
-        img.src = e.target?.result as string;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+  const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const createImage = (url: string): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener('load', () => resolve(image));
+      image.addEventListener('error', (error) => reject(error));
+      image.setAttribute('crossOrigin', 'anonymous');
+      image.src = url;
+    });
+
+  const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<{ full: string, thumb: string }> => {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) throw new Error('No 2d context');
+
+    // Create the "Profile" version (800x800)
+    canvas.width = 800;
+    canvas.height = 800;
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      800,
+      800
+    );
+    const full = canvas.toDataURL('image/jpeg', 0.5);
+
+    // Create the "Thumbnail" version (128x128)
+    canvas.width = 128;
+    canvas.height = 128;
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      128,
+      128
+    );
+    const thumb = canvas.toDataURL('image/jpeg', 0.3);
+
+    return { full, thumb };
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      setImageToCrop(reader.result as string);
+    });
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropSave = async () => {
+    if (!imageToCrop || !croppedAreaPixels) return;
+
     setIsProcessing(true);
     try {
-      const { full, thumb } = await processImage(file);
+      const { full, thumb } = await getCroppedImg(imageToCrop, croppedAreaPixels);
       setFormData(prev => ({ ...prev, profilePicture: full, thumbnail: thumb }));
+      setImageToCrop(null);
     } catch (err) {
       console.error('Image processing failed:', err);
-      alert('Failed to process image. Please try another one.');
+      alert('Failed to process image.');
     } finally {
       setIsProcessing(false);
     }
@@ -300,6 +365,85 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Image Cropper Modal - Fully Contained and Responsive */}
+      {imageToCrop && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-6 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col h-full max-h-[85vh] animate-in zoom-in-95 duration-300">
+            {/* Header - Fixed */}
+            <div className="px-6 py-4 md:px-8 md:py-5 border-b border-slate-100 flex justify-between items-center bg-white flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
+                  <Camera className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800 leading-none">Position Photo</h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Square Crop</p>
+                </div>
+              </div>
+              <button onClick={() => setImageToCrop(null)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Cropper Area - Flexible but contained */}
+            <div className="relative flex-1 bg-slate-900 min-h-0">
+              <Cropper
+                image={imageToCrop}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="rect"
+                showGrid={true}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+                classes={{
+                  containerClassName: "bg-slate-900",
+                  mediaClassName: "max-w-none",
+                  cropAreaClassName: "border-2 border-white/50 shadow-[0_0_0_9999px_rgba(0,0,0,0.7)]"
+                }}
+              />
+            </div>
+
+            {/* Controls & Buttons - Fixed at bottom */}
+            <div className="px-6 py-6 md:px-8 md:py-6 border-t border-slate-100 bg-white space-y-5 flex-shrink-0">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <span className="flex items-center gap-2">Scale</span>
+                  <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-800">{Math.round(zoom * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  value={zoom}
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  aria-labelledby="Zoom"
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-red-600"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setImageToCrop(null)} 
+                  className="flex-1 px-6 py-3.5 font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleCropSave} 
+                  disabled={isProcessing}
+                  className="flex-[1.5] flex items-center justify-center gap-2 px-6 py-3.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all disabled:opacity-50 text-sm"
+                >
+                  {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Check className="w-5 h-5" /> Done</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
