@@ -3,6 +3,23 @@ import { Member, Subscription, PaymentType, PaymentMethod } from '../types';
 import { X, Calendar, Plus } from 'lucide-react';
 import { NepaliDatePicker, makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 
+const calculateEndDate = (startStr: string, durationStr: string) => {
+  const date = new Date(startStr);
+  if (isNaN(date.getTime()) || !durationStr) return '';
+  
+  const num = parseInt(durationStr);
+  if (isNaN(num)) return '';
+
+  if (durationStr.toLowerCase().includes('month')) {
+    date.setMonth(date.getMonth() + num);
+  } else if (durationStr.toLowerCase().includes('year')) {
+    date.setFullYear(date.getFullYear() + num);
+  } else if (durationStr.toLowerCase().includes('day')) {
+    date.setDate(date.getDate() + num);
+  }
+  
+  return date.toISOString().split('T')[0];
+};
 interface SubscriptionFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -37,8 +54,10 @@ const SubscriptionFormModal: React.FC<SubscriptionFormModalProps> = ({ isOpen, o
             const durations = Object.keys(matrix[category]);
             setAvailableDurations(durations);
             if (!existingSubscription && durations.length > 0) {
-              setPlanName(durations[0]);
-              setTotalAmount(matrix[category][durations[0]]);
+              const defaultDuration = durations.includes('1 Month') ? '1 Month' : durations[0];
+              setPlanName(defaultDuration);
+              setTotalAmount(matrix[category][defaultDuration]);
+              setEndDate(calculateEndDate(startDate, defaultDuration));
             }
           }
         });
@@ -51,6 +70,14 @@ const SubscriptionFormModal: React.FC<SubscriptionFormModalProps> = ({ isOpen, o
     setPlanName(selectedDuration);
     if (pricingMatrix && member.accessLevel && pricingMatrix[member.accessLevel]) {
        setTotalAmount(pricingMatrix[member.accessLevel][selectedDuration] || 0);
+    }
+    setEndDate(calculateEndDate(startDate, selectedDuration));
+  };
+
+  const handleStartDateChange = (adDateStr: string) => {
+    setStartDate(adDateStr);
+    if (planName) {
+      setEndDate(calculateEndDate(adDateStr, planName));
     }
   };
 
@@ -113,7 +140,7 @@ const SubscriptionFormModal: React.FC<SubscriptionFormModalProps> = ({ isOpen, o
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Start Date</label>
               <NepaliDatePicker 
                 value={startDate ? makeDualDateValueFromAd(new Date(startDate)) : null}
-                onChange={(val) => setStartDate(val?.formatted.ad || '')}
+                onChange={(val) => handleStartDateChange(val?.formatted.ad || '')}
                 format="YYYY-MM-DD"
                 showCalendarSystemToggle={true}
                 showLanguageToggle={true}
