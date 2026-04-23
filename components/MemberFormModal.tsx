@@ -233,18 +233,18 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
             {/* ─── Photo & Member No ─── */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
                <div className="flex flex-col items-center gap-3 w-full md:w-auto">
-                  <div className="relative w-32 h-32 rounded-full overflow-hidden bg-slate-100 border-4 border-white shadow-md">
+                  <div className="relative w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden bg-slate-100 border-4 border-white shadow-md">
                     {formData.profilePicture ? (
                       <img src={formData.profilePicture} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                        <Camera className="w-8 h-8 mb-1" />
-                        <span className="text-[10px] font-bold uppercase tracking-tighter">No Photo</span>
+                        <Camera className="w-10 h-10 mb-1" />
+                        <span className="text-[10px] md:text-xs font-bold uppercase tracking-tighter">No Photo</span>
                       </div>
                     )}
                     {isProcessing && (
                       <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                         <Loader2 className="w-6 h-6 animate-spin text-red-600" />
+                         <Loader2 className="w-8 h-8 md:w-10 md:h-10 animate-spin text-red-600" />
                       </div>
                     )}
                   </div>
