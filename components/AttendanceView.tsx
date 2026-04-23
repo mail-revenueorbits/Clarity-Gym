@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Attendance } from '../types';
 import { portalService } from '../services/portalService';
 import { Calendar, Clock, Users, Loader2, ChevronLeft, ChevronRight, CheckCircle2, UserCheck } from 'lucide-react';
-import { getFormattedBsDate } from '../utils';
+import { getFormattedBsDate, getLocalDateString } from '../utils';
 import { NepaliDatePicker, makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 
 interface AttendanceViewProps {
@@ -10,7 +10,7 @@ interface AttendanceViewProps {
 }
 
 const AttendanceView: React.FC<AttendanceViewProps> = ({ onMemberClick }) => {
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => getLocalDateString());
   const [records, setRecords] = useState<Attendance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [todayCount, setTodayCount] = useState(0);
@@ -35,14 +35,14 @@ const AttendanceView: React.FC<AttendanceViewProps> = ({ onMemberClick }) => {
     loadAttendance();
   }, [selectedDate]);
 
-  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+  const isToday = selectedDate === getLocalDateString();
 
   const changeDate = (days: number) => {
     const d = new Date(selectedDate);
     d.setDate(d.getDate() + days);
     // Don't go into the future
     if (d > new Date()) return;
-    setSelectedDate(d.toISOString().split('T')[0]);
+    setSelectedDate(getLocalDateString(d));
   };
 
   return (
@@ -111,7 +111,7 @@ const AttendanceView: React.FC<AttendanceViewProps> = ({ onMemberClick }) => {
             />
             {!isToday && (
               <button
-                onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+                onClick={() => setSelectedDate(getLocalDateString())}
                 className="px-3 py-2 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors shrink-0"
               >
                 Today

@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../utils';
 import React, { useMemo, useState } from 'react';
 import { Member, PaymentType, Expense, InventorySale } from '../types';
 import { TrendingUp, TrendingDown, DollarSign, PieChart, Download, CalendarDays, Plus, Trash2, Calendar } from 'lucide-react';
@@ -174,7 +175,7 @@ const Finance: React.FC<FinanceProps> = ({ members, expenses, inventorySales, on
       title: expForm.title,
       category: expForm.category,
       amount: Number(expForm.amount),
-      date: new Date().toISOString().split('T')[0],
+      date: getLocalDateString(),
       notes: expForm.notes,
     });
     setExpForm({ title: '', amount: 0, category: 'Supplies', notes: '' });

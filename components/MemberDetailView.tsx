@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Member, Subscription, PaymentType, Attendance } from '../types';
 import { ArrowLeft, User, Phone, MapPin, Calendar, HeartPulse, Edit2, Plus, CreditCard, Clock, CheckCircle2, Trash2, Bell, MessageSquare, KeyRound, Eye, EyeOff, Save, X, Loader2, UserCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { makeDualDateValueFromAd, getTotalDays, getBaar } from '@etpl/nepali-datepicker';
-import { getFormattedBsDate } from '../utils';
+import { getFormattedBsDate, getLocalDateString } from '../utils';
 import SubscriptionFormModal from './SubscriptionFormModal';
 import { LogEntry } from './Notifications';
 
@@ -57,7 +57,7 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, attendance,
   };
 
   const sortedSubs = [...member.subscriptions].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateString();
 
   const getSubStatus = (sub: Subscription) => {
      if (!sub.isActive) return { text: 'Cancelled', class: 'bg-slate-100 text-slate-600' };

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Expense } from '../types';
 import { TrendingDown, Plus, Search, Filter, CalendarDays, DollarSign, Edit2, Trash2 } from 'lucide-react';
 import { NepaliDatePicker, makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
-import { getFormattedBsDate } from '../utils';
+import { getFormattedBsDate, getLocalDateString } from '../utils';
 
 interface ExpensesProps {
   expenses: Expense[];
@@ -20,7 +20,7 @@ const Expenses: React.FC<ExpensesProps> = ({ expenses, onAddExpense, onDeleteExp
     title: '',
     category: 'Supplies',
     amount: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateString(),
     notes: ''
   });
 
@@ -55,7 +55,7 @@ const Expenses: React.FC<ExpensesProps> = ({ expenses, onAddExpense, onDeleteExp
       title: '',
       category: 'Supplies',
       amount: 0,
-      date: new Date().toISOString().split('T')[0],
+      date: getLocalDateString(),
       notes: ''
     });
   };

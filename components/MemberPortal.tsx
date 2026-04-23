@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { portalService, PortalMember } from '../services/portalService';
 import { Attendance } from '../types';
 import { Loader2, LogOut, Calendar, Clock, CheckCircle2, AlertTriangle, Dumbbell, Shield, Phone, Lock, ChevronRight, Flame, UserCheck, Timer } from 'lucide-react';
-import { getFormattedBsDate } from '../utils';
+import { getFormattedBsDate, getLocalDateString } from '../utils';
 import { makeDualDateValueFromAd, getTotalDays, getBaar } from '@etpl/nepali-datepicker';
 const STORAGE_KEY = 'clarity_portal_member';
 
@@ -155,19 +155,19 @@ const MemberPortal: React.FC = () => {
     let streak = 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = getLocalDateString(today);
     
     if (sortedDates[0] !== todayStr) {
       const yesterday = new Date(today);
       yesterday.setDate(today.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      const yesterdayStr = getLocalDateString(yesterday);
       if (sortedDates[0] !== yesterdayStr) return 0;
     }
 
     for (let i = 0; i < sortedDates.length; i++) {
       const expected = new Date(new Date(sortedDates[0]).getTime());
       expected.setDate(expected.getDate() - i);
-      const expectedStr = expected.toISOString().split('T')[0];
+      const expectedStr = getLocalDateString(expected);
       
       if (sortedDates[i] === expectedStr) {
         streak++;

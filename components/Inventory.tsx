@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { InventoryItem, InventorySale, PaymentMethod } from '../types';
 import { PackageOpen, Plus, Search, Filter, ShoppingCart, CalendarDays, Edit2, Trash2 } from 'lucide-react';
 import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
-import { getFormattedBsDate } from '../utils';
+import { getFormattedBsDate, getLocalDateString } from '../utils';
 
 interface InventoryProps {
   items: InventoryItem[];
@@ -81,7 +81,7 @@ const Inventory: React.FC<InventoryProps> = ({ items, sales, onAddItem, onUpdate
       itemId: item.id,
       quantity: saleFormData.quantity,
       totalAmount: item.price * saleFormData.quantity,
-      date: new Date().toISOString().split('T')[0],
+      date: getLocalDateString(),
       method: saleFormData.method
     });
     

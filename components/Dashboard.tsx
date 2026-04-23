@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Member, Subscription, PaymentType, Expense, InventorySale } from '../types';
 import { Users, UserPlus, CreditCard, AlertCircle, CalendarDays, Activity, MessageSquare, CheckCircle2, AlertTriangle, IndianRupee } from 'lucide-react';
 import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
-import { getFormattedBsDate } from '../utils';
+import { getFormattedBsDate, getLocalDateString } from '../utils';
 
 interface DashboardProps {
   members: Member[];
@@ -18,15 +18,15 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ members, expenses, inventorySales, todayAttendance, onMemberClick, onAddMember, privacyMode, onSeeAll, onImageClick }) => {
   const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = getLocalDateString(today);
   
   const in3Days = new Date(today);
   in3Days.setDate(today.getDate() + 3);
-  const in3DaysStr = in3Days.toISOString().split('T')[0];
+  const in3DaysStr = getLocalDateString(in3Days);
 
   const lastWeek = new Date(today);
   lastWeek.setDate(today.getDate() - 7);
-  const lastWeekStr = lastWeek.toISOString().split('T')[0];
+  const lastWeekStr = getLocalDateString(lastWeek);
 
   const currentMonthPrefix = todayStr.substring(0, 7);
 

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Member } from '../types';
 import { Search, UserPlus, Filter, ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight } from 'lucide-react';
 import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
-import { getFormattedBsDate } from '../utils';
+import { getFormattedBsDate, getLocalDateString } from '../utils';
 
 interface MembersListProps {
   members: Member[];
@@ -32,7 +32,7 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
     onFilterChange?.(val);
   };
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateString();
 
   const getMemberStatus = (member: Member) => {
     if (member.subscriptions.length === 0) return 'pending';
@@ -77,11 +77,11 @@ const MembersList: React.FC<MembersListProps> = ({ members, onAddClick, onMember
         const mEndDate = getActiveEndDate(m);
         const in3Days = new Date();
         in3Days.setDate(in3Days.getDate() + 3);
-        const in3DaysStr = in3Days.toISOString().split('T')[0];
+        const in3DaysStr = getLocalDateString(in3Days);
         const lastWeek = new Date();
         lastWeek.setDate(lastWeek.getDate() - 7);
-        const lastWeekStr = lastWeek.toISOString().split('T')[0];
-        const todayStrLocal = new Date().toISOString().split('T')[0];
+        const lastWeekStr = getLocalDateString(lastWeek);
+        const todayStrLocal = getLocalDateString();
 
         if (filterStr === 'pending') {
           return m.subscriptions.some(s => !s.payment.remainingPaid);

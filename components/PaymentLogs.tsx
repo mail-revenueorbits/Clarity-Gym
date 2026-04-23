@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../utils';
 import React, { useMemo, useState } from 'react';
 import { Member, Subscription, PaymentType } from '../types';
 import { Search, Filter, CreditCard, CheckCircle2, Clock, DollarSign, Download, ChevronRight, MessageSquare, Calendar } from 'lucide-react';
@@ -115,7 +116,7 @@ const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick, priva
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ClarityGym_Payments_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `ClarityGym_Payments_${getLocalDateString()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

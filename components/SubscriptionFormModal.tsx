@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../utils';
 import React, { useState } from 'react';
 import { Member, Subscription, PaymentType, PaymentMethod } from '../types';
 import { X, Calendar, Plus } from 'lucide-react';
@@ -18,7 +19,7 @@ const calculateEndDate = (startStr: string, durationStr: string) => {
     date.setDate(date.getDate() + num);
   }
   
-  return date.toISOString().split('T')[0];
+  return getLocalDateString(date);
 };
 interface SubscriptionFormModalProps {
   isOpen: boolean;
@@ -33,7 +34,7 @@ const SubscriptionFormModal: React.FC<SubscriptionFormModalProps> = ({ isOpen, o
   const [availableDurations, setAvailableDurations] = React.useState<string[]>([]);
 
   const [planName, setPlanName] = useState(existingSubscription?.planName || '');
-  const [startDate, setStartDate] = useState(existingSubscription?.startDate || new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(existingSubscription?.startDate || getLocalDateString());
   const [endDate, setEndDate] = useState(existingSubscription?.endDate || '');
   const [totalAmount, setTotalAmount] = useState(existingSubscription?.payment.totalAmount || 0);
   const [paymentType, setPaymentType] = useState<PaymentType>(existingSubscription?.payment.type || PaymentType.FULL);

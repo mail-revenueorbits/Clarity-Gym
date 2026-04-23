@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../utils';
 import React, { useState, useEffect } from 'react';
 import { Member } from '../types';
 import { X, UserPlus, FileEdit, Camera, Upload, Loader2, Check } from 'lucide-react';
@@ -46,7 +47,7 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
     emergencyContact2: '',
     bloodGroup: '',
     accessLevel: 'Gym',
-    joinedDate: new Date().toISOString().split('T')[0],
+    joinedDate: getLocalDateString(),
     notes: '',
     profilePicture: '',
     thumbnail: '',
@@ -78,7 +79,7 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
             emergencyContact2: '',
             bloodGroup: '',
             accessLevel: 'Gym',
-            joinedDate: new Date().toISOString().split('T')[0],
+            joinedDate: getLocalDateString(),
             notes: '',
             profilePicture: '',
             thumbnail: '',
@@ -99,7 +100,7 @@ const MemberFormModal: React.FC<MemberFormModalProps> = ({
           emergencyContact2: initialData.emergencyContact2 || '',
           bloodGroup: initialData.bloodGroup || '',
           accessLevel: initialData.accessLevel || 'Gym',
-          joinedDate: initialData.joinedDate || new Date().toISOString().split('T')[0],
+          joinedDate: initialData.joinedDate || getLocalDateString(),
           notes: initialData.notes || '',
           profilePicture: initialData.profilePicture || '',
           thumbnail: initialData.thumbnail || '',

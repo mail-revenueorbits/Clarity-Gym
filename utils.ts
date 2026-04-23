@@ -39,3 +39,12 @@ export const getFormattedBsDate = (adDate: Date | string | number | null | undef
     return '—';
   }
 };
+
+/**
+ * Returns the local date string in YYYY-MM-DD format, correcting for the timezone offset.
+ */
+export const getLocalDateString = (date: Date | string | number = new Date()): string => {
+  const d = new Date(date);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().split('T')[0];
+};
