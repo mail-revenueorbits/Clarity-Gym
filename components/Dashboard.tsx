@@ -8,6 +8,7 @@ interface DashboardProps {
   members: Member[];
   expenses: Expense[];
   inventorySales: InventorySale[];
+  todayAttendance: number;
   onMemberClick: (id: string) => void;
   onAddMember: () => void;
   privacyMode: boolean;
@@ -15,7 +16,7 @@ interface DashboardProps {
   onImageClick?: (url: string, name: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ members, expenses, inventorySales, onMemberClick, onAddMember, privacyMode, onSeeAll, onImageClick }) => {
+const Dashboard: React.FC<DashboardProps> = ({ members, expenses, inventorySales, todayAttendance, onMemberClick, onAddMember, privacyMode, onSeeAll, onImageClick }) => {
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
   
@@ -116,8 +117,26 @@ const Dashboard: React.FC<DashboardProps> = ({ members, expenses, inventorySales
       </div>
 
       {/* Top Bar: Key Front-Desk Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         
+        {/* Today's Check-ins */}
+        <div 
+          onClick={() => onSeeAll('attendance')}
+          className="bg-red-600 rounded-2xl md:rounded-3xl p-4 md:p-6 relative overflow-hidden group border border-red-500 shadow-xl shadow-red-600/10 cursor-pointer hover:bg-red-700 transition-all"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl transition-colors"></div>
+          <div className="relative z-10 flex items-center gap-3 md:gap-4 mb-2 md:mb-3">
+             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/20 flex items-center justify-center text-white">
+               <Activity className="w-5 h-5 md:w-6 md:h-6" />
+             </div>
+             <div>
+               <p className="text-red-100 text-[10px] md:text-xs font-bold uppercase tracking-widest">Today's Check-ins</p>
+               <h3 className="text-2xl md:text-3xl font-black text-white tracking-tight">{todayAttendance}</h3>
+             </div>
+          </div>
+          <p className="text-xs md:text-sm font-medium text-red-100 relative z-10">Members checked in today</p>
+        </div>
+
         {/* Today's Collection */}
         <div className="bg-slate-900 rounded-2xl md:rounded-3xl p-4 md:p-6 relative overflow-hidden group border border-slate-800 shadow-xl shadow-slate-900/10">
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl transition-colors"></div>

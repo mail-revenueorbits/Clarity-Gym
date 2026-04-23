@@ -71,5 +71,15 @@ export interface Member {
   profilePicture?: string; // 1080x1080 compressed JPEG (base64)
   thumbnail?: string; // 128x128 compressed JPEG (base64)
   isDeleted?: boolean;
+  memberPassword?: string; // Portal login password (auto-generated)
   createdAt: number;
 }
+
+export interface Attendance {
+  id: string;
+  memberId: string;
+  memberName?: string; // Joined from members table for admin views
+  checkInDate: string; // YYYY-MM-DD
+  checkInTime: string; // ISO timestamp
+}
+

@@ -12,10 +12,12 @@ import { LogEntry } from './components/Notifications';
 import Expenses from './components/Expenses';
 import Inventory from './components/Inventory';
 import Finance from './components/Finance';
+import AttendanceView from './components/AttendanceView';
 import { useAuth } from './components/AuthContext';
-import { LayoutDashboard, Menu, X, Users, PackageOpen, CreditCard, Loader2, LogOut, Eye, EyeOff, Bell, TrendingDown, Settings as SettingsIcon, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Menu, X, Users, PackageOpen, CreditCard, Loader2, LogOut, Eye, EyeOff, Bell, TrendingDown, Settings as SettingsIcon, BarChart3, UserCheck } from 'lucide-react';
 import { memberService } from './services/memberService';
 import { inventoryService } from './services/inventoryService';
+import { portalService } from './services/portalService';
 
 const ClarityIcon = ({ className }: { className?: string }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -34,7 +36,7 @@ const App = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [isSplashFading, setIsSplashFading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'member-details' | 'payment-logs' | 'notifications' | 'expenses' | 'inventory' | 'finance' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'member-details' | 'payment-logs' | 'notifications' | 'expenses' | 'inventory' | 'finance' | 'attendance' | 'settings'>('dashboard');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [membersFilter, setMembersFilter] = useState<string>('all');
   const [privacyMode, setPrivacyMode] = useState(true);
@@ -88,6 +90,7 @@ const App = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [inventorySales, setInventorySales] = useState<InventorySale[]>([]);
+  const [todayAttendance, setTodayAttendance] = useState(0);
   const [notificationLogs, setNotificationLogs] = useState<LogEntry[]>([
     {
       id: '1',
@@ -136,14 +139,16 @@ const App = () => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [membersData, itemsData, salesData] = await Promise.all([
+        const [membersData, itemsData, salesData, attendanceCount] = await Promise.all([
           memberService.fetchMembers(),
           inventoryService.fetchItems(),
-          inventoryService.fetchSales()
+          inventoryService.fetchSales(),
+          portalService.fetchTodayAttendanceCount()
         ]);
         setMembers(membersData);
         setInventoryItems(itemsData);
         setInventorySales(salesData);
+        setTodayAttendance(attendanceCount);
       } catch (error) {
         console.error(error);
       } finally {
@@ -199,6 +204,24 @@ const App = () => {
         try {
             const newMember = await memberService.createMember(optimisticMember);
             setMembers(prev => prev.map(m => m.id === optimisticMember.id ? newMember : m));
+
+            // Auto-send SMS with portal credentials
+            if (newMember.memberPassword && newMember.phone) {
+              const portalUrl = `${window.location.origin}/#/portal`;
+              const smsMessage = `Welcome to Clarity Gym, ${newMember.name.split(' ')[0]}! Your Member Portal login:\nPhone: ${newMember.phone}\nPassword: ${newMember.memberPassword}\nPortal: ${portalUrl}\nScan the QR at the gym to check in daily.`;
+              
+              const smsLog: LogEntry = {
+                id: crypto.randomUUID(),
+                type: 'alert',
+                message: smsMessage,
+                recipientsCount: 1,
+                recipientNames: [newMember.name],
+                status: 'sent',
+                timestamp: Date.now(),
+              };
+              setNotificationLogs(prev => [smsLog, ...prev]);
+              setSmsCredits(prev => Math.max(0, prev - 1));
+            }
         } catch(error) {
             console.error(error);
             setMembers(prev => prev.filter(m => m.id !== optimisticMember.id));
@@ -238,6 +261,14 @@ const App = () => {
       } catch (error) {
           console.error(error);
       }
+  };
+
+  const handleUpdatePassword = async (memberId: string, newPassword: string) => {
+    const success = await memberService.updatePassword(memberId, newPassword);
+    if (success) {
+      setMembers(prev => prev.map(m => m.id === memberId ? { ...m, memberPassword: newPassword } : m));
+    }
+    return success;
   };
 
   const handleMemberClick = (id: string) => {
@@ -284,6 +315,7 @@ const App = () => {
       case 'member-details': return 'Member Profile';
       case 'payment-logs': return 'Payment Logs';
       case 'notifications': return 'Notifications & SMS';
+      case 'attendance': return 'Attendance';
       case 'settings': return 'Gym Packages';
       default: return 'Clarity Gym';
     }
@@ -330,6 +362,7 @@ const App = () => {
             {[
               { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
               { id: 'members', icon: Users, label: 'Members' },
+              { id: 'attendance', icon: UserCheck, label: 'Attendance' },
               { id: 'payment-logs', icon: CreditCard, label: 'Payment Logs' },
               { id: 'expenses', icon: TrendingDown, label: 'Expenses' },
               { id: 'inventory', icon: PackageOpen, label: 'Inventory' },
@@ -381,7 +414,7 @@ const App = () => {
               <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400 gap-4"><Loader2 className="w-8 h-8 animate-spin text-red-600" /><p>Loading data...</p></div>
             ) : (
               <>
-                  {activeTab === 'dashboard' && <Dashboard members={members} expenses={expenses} inventorySales={inventorySales} onMemberClick={handleMemberClick} onAddMember={handleOpenAddMember} privacyMode={privacyMode} onSeeAll={(f) => navigateTo('members', null, f)} onImageClick={(url, name) => setViewingImage({url, name})} />}
+                  {activeTab === 'dashboard' && <Dashboard members={members} expenses={expenses} inventorySales={inventorySales} todayAttendance={todayAttendance} onMemberClick={handleMemberClick} onAddMember={handleOpenAddMember} privacyMode={privacyMode} onSeeAll={(f) => navigateTo(f === 'attendance' ? 'attendance' : 'members', null, f === 'attendance' ? '' : f)} onImageClick={(url, name) => setViewingImage({url, name})} />}
                   {activeTab === 'members' && <MembersList members={members} onAddClick={handleOpenAddMember} onMemberClick={handleMemberClick} initialFilter={membersFilter} onFilterChange={setMembersFilter} onImageClick={(url, name) => setViewingImage({url, name})} />}
                   {activeTab === 'inventory' && <Inventory items={inventoryItems} sales={inventorySales} onAddItem={handleAddItem} onUpdateItem={handleUpdateItem} onAddSale={handleAddSale} privacyMode={privacyMode} />}
                   {activeTab === 'member-details' && selectedMember && 
@@ -391,6 +424,7 @@ const App = () => {
                          onEditMember={handleOpenEditMember} 
                          onSaveSubscription={handleSaveSubscription}
                          onDeleteMember={handleDeleteMember}
+                         onUpdatePassword={handleUpdatePassword}
                          notificationLogs={notificationLogs}
                          onImageClick={(url, name) => setViewingImage({url, name})}
                      />
@@ -399,6 +433,7 @@ const App = () => {
                   {activeTab === 'expenses' && <Expenses expenses={expenses} onAddExpense={(e) => setExpenses([e, ...expenses])} onDeleteExpense={(id) => setExpenses(expenses.filter(e => e.id !== id))} privacyMode={privacyMode} />}
                   {activeTab === 'finance' && <Finance members={members} expenses={expenses} inventorySales={inventorySales} onAddExpense={(e) => setExpenses([e, ...expenses])} onDeleteExpense={(id) => setExpenses(expenses.filter(e => e.id !== id))} privacyMode={privacyMode} />}
                   {activeTab === 'notifications' && <Notifications members={members} logs={notificationLogs} onAddLog={(log) => setNotificationLogs(prev => [log, ...prev].sort((a,b) => b.timestamp - a.timestamp))} credits={smsCredits} onUseCredits={(n) => setSmsCredits(prev => Math.max(0, prev - n))} />}
+                  {activeTab === 'attendance' && <AttendanceView onMemberClick={handleMemberClick} />}
                   {activeTab === 'settings' && <Settings />}
               </>
             )}

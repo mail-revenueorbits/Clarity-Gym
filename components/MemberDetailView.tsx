@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Member, Subscription, PaymentType } from '../types';
-import { ArrowLeft, User, Phone, MapPin, Calendar, HeartPulse, Edit2, Plus, CreditCard, Clock, CheckCircle2, Trash2, Bell, MessageSquare } from 'lucide-react';
+import { ArrowLeft, User, Phone, MapPin, Calendar, HeartPulse, Edit2, Plus, CreditCard, Clock, CheckCircle2, Trash2, Bell, MessageSquare, KeyRound, Eye, EyeOff, Save, X, Loader2 } from 'lucide-react';
 import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 import { getFormattedBsDate } from '../utils';
 import SubscriptionFormModal from './SubscriptionFormModal';
@@ -12,13 +12,30 @@ interface MemberDetailViewProps {
   onEditMember: (member: Member) => void;
   onSaveSubscription: (memberId: string, subscription: Subscription) => void;
   onDeleteMember: (id: string) => void;
+  onUpdatePassword: (memberId: string, newPassword: string) => Promise<boolean>;
   notificationLogs?: LogEntry[];
   onImageClick?: (url: string, name: string) => void;
 }
 
-const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onEditMember, onSaveSubscription, onDeleteMember, notificationLogs = [], onImageClick }) => {
+const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onEditMember, onSaveSubscription, onDeleteMember, onUpdatePassword, notificationLogs = [], onImageClick }) => {
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [editingSub, setEditingSub] = useState<Subscription | undefined>(undefined);
+
+  // Password editing state
+  const [isEditingPassword, setIsEditingPassword] = useState(false);
+  const [tempPassword, setTempPassword] = useState(member.memberPassword || '');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  const handleUpdatePassword = async () => {
+    if (!tempPassword.trim()) return;
+    setIsSavingPassword(true);
+    const success = await onUpdatePassword(member.id, tempPassword.trim());
+    if (success) {
+      setIsEditingPassword(false);
+    }
+    setIsSavingPassword(false);
+  };
 
   const handleOpenNewSub = () => {
     setEditingSub(undefined);
@@ -128,6 +145,97 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
                   <p className="font-medium text-red-900 bg-white/50 p-3 rounded-xl text-sm">{member.notes || 'No medical notes.'}</p>
                 </div>
              </div>
+          </div>
+
+          {/* Portal Credentials Card */}
+          <div className="bg-slate-50 rounded-2xl md:rounded-3xl p-5 md:p-8 border border-slate-200 relative overflow-hidden">
+            <KeyRound className="absolute -right-4 -bottom-4 w-32 h-32 text-slate-900/5" />
+            
+            <div className="flex justify-between items-center mb-6 relative">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow-sm">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Portal Access</h3>
+              </div>
+              {!isEditingPassword ? (
+                <button 
+                  onClick={() => {
+                    setTempPassword(member.memberPassword || '');
+                    setIsEditingPassword(true);
+                  }}
+                  className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all border border-transparent hover:border-slate-300"
+                  title="Edit Credentials"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleUpdatePassword}
+                    disabled={isSavingPassword}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 disabled:opacity-50 transition-all shadow-sm"
+                  >
+                    {isSavingPassword ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    Save
+                  </button>
+                  <button 
+                    onClick={() => setIsEditingPassword(false)}
+                    disabled={isSavingPassword}
+                    className="p-1.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 disabled:opacity-50 transition-all"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            <div className="space-y-5 relative">
+              <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white/50 shadow-sm">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Username (Phone)</p>
+                <p className="font-bold text-slate-900 font-mono tracking-tight">{member.phone}</p>
+              </div>
+
+              <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white/50 shadow-sm">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Portal Password</p>
+                {isEditingPassword ? (
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={tempPassword}
+                      onChange={(e) => setTempPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold font-mono text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
+                      autoFocus
+                    />
+                    <button 
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <p className={`font-bold text-slate-900 font-mono text-lg tracking-widest ${!member.memberPassword ? 'italic text-slate-300' : ''}`}>
+                      {!member.memberPassword ? 'Not set' : (showPassword ? member.memberPassword : '••••••••')}
+                    </p>
+                    {member.memberPassword && (
+                      <button 
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              <p className="text-[10px] text-slate-400 font-medium leading-relaxed px-1">
+                Members use these credentials to log in to the portal at <span className="text-slate-600 font-bold">{window.location.origin}/#/portal</span>
+              </p>
+            </div>
           </div>
         </div>
 

@@ -123,3 +123,46 @@ CREATE POLICY "Authenticated users can delete" ON storage.objects
   FOR DELETE USING (
     bucket_id = 'profile-pictures' AND auth.role() = 'authenticated'
   );
+
+-- =============================================================
+-- 5. Member Portal: Password column for member login
+-- =============================================================
+ALTER TABLE members ADD COLUMN IF NOT EXISTS member_password TEXT DEFAULT '';
+
+-- =============================================================
+-- 6. Attendance Table (for member check-ins via portal)
+-- =============================================================
+CREATE TABLE IF NOT EXISTS attendance (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  member_id UUID NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  check_in_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  check_in_time TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(member_id, check_in_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_attendance_member_id ON attendance(member_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_check_in_date ON attendance(check_in_date);
+
+ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
+
+-- Portal needs anon access to mark attendance and read own records
+DROP POLICY IF EXISTS "Anyone can insert attendance" ON attendance;
+CREATE POLICY "Anyone can insert attendance" ON attendance
+  FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Anyone can read attendance" ON attendance;
+CREATE POLICY "Anyone can read attendance" ON attendance
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users full access attendance" ON attendance;
+CREATE POLICY "Authenticated users full access attendance" ON attendance
+  FOR ALL USING (auth.role() = 'authenticated')
+  WITH CHECK (auth.role() = 'authenticated');
+
+-- =============================================================
+-- Allow anon users to read members table for portal login
+-- (phone + password verification)
+-- =============================================================
+DROP POLICY IF EXISTS "Anyone can read members for portal" ON members;
+CREATE POLICY "Anyone can read members for portal" ON members
+  FOR SELECT USING (true);

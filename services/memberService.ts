@@ -21,8 +21,19 @@ interface DbMember {
   profile_picture_url: string;
   thumbnail_url: string;
   is_deleted: boolean;
+  member_password: string;
   created_at: string;
   subscriptions?: DbSubscription[];
+}
+
+// Generate a simple 6-character alphanumeric password for portal login
+function generatePortalPassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No confusing chars (0/O, 1/I/L)
+  let password = '';
+  for (let i = 0; i < 6; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
 }
 
 interface DbSubscription {
@@ -68,6 +79,7 @@ function dbToMember(row: DbMember): Member {
     profilePicture: row.profile_picture_url || '',
     thumbnail: row.thumbnail_url || '',
     isDeleted: row.is_deleted,
+    memberPassword: row.member_password || '',
     createdAt: new Date(row.created_at).getTime(),
     subscriptions,
   };
@@ -185,6 +197,9 @@ export const memberService = {
       }
     }
 
+    // Auto-generate a portal password for new members
+    const portalPassword = member.memberPassword || generatePortalPassword();
+
     const { data, error } = await supabase
       .from('members')
       .insert({
@@ -204,6 +219,7 @@ export const memberService = {
         notes: member.notes,
         profile_picture_url: profilePictureUrl,
         thumbnail_url: thumbnailUrl,
+        member_password: portalPassword,
         is_deleted: false,
       })
       .select(`
@@ -336,5 +352,14 @@ export const memberService = {
       );
 
     if (payError) throw payError;
+  },
+
+  async updatePassword(memberId: string, newPassword: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('members')
+      .update({ member_password: newPassword })
+      .eq('id', memberId);
+
+    return !error;
   },
 };
