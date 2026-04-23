@@ -5,6 +5,7 @@ import MemberPortal from './components/MemberPortal';
 import { AuthProvider } from './components/AuthContext';
 import './index.css';
 
+
 // Hash-based routing: /#/portal renders the member portal, everything else renders admin
 const RootRouter = () => {
   const [isPortal, setIsPortal] = useState(false);
