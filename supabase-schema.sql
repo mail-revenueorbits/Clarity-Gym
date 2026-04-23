@@ -145,14 +145,9 @@ CREATE INDEX IF NOT EXISTS idx_attendance_check_in_date ON attendance(check_in_d
 
 ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 
--- Portal needs anon access to mark attendance and read own records
+-- Removed insecure anon access policies for attendance
 DROP POLICY IF EXISTS "Anyone can insert attendance" ON attendance;
-CREATE POLICY "Anyone can insert attendance" ON attendance
-  FOR INSERT WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Anyone can read attendance" ON attendance;
-CREATE POLICY "Anyone can read attendance" ON attendance
-  FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users full access attendance" ON attendance;
 CREATE POLICY "Authenticated users full access attendance" ON attendance
@@ -160,9 +155,183 @@ CREATE POLICY "Authenticated users full access attendance" ON attendance
   WITH CHECK (auth.role() = 'authenticated');
 
 -- =============================================================
--- Allow anon users to read members table for portal login
--- (phone + password verification)
+-- Removed insecure anon access to members table
 -- =============================================================
 DROP POLICY IF EXISTS "Anyone can read members for portal" ON members;
-CREATE POLICY "Anyone can read members for portal" ON members
-  FOR SELECT USING (true);
+
+-- =============================================================
+-- Secure RPC functions for Portal (Security Definer)
+-- =============================================================
+
+-- 1. Portal Login
+CREATE OR REPLACE FUNCTION portal_login(p_phone TEXT, p_password TEXT)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_member record;
+  v_subscription record;
+  v_result jsonb;
+BEGIN
+  -- Find member by phone and password
+  SELECT * INTO v_member
+  FROM members
+  WHERE phone = p_phone AND member_password = p_password AND is_deleted = false
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+
+  -- Find active subscription
+  SELECT * INTO v_subscription
+  FROM subscriptions
+  WHERE member_id = v_member.id AND is_active = true AND end_date >= CURRENT_DATE
+  ORDER BY end_date DESC
+  LIMIT 1;
+
+  v_result := jsonb_build_object(
+    'id', v_member.id,
+    'member_number', v_member.member_number,
+    'name', v_member.name,
+    'phone', v_member.phone,
+    'profile_picture_url', v_member.profile_picture_url,
+    'thumbnail_url', v_member.thumbnail_url,
+    'access_level', v_member.access_level,
+    'member_password', v_member.member_password,
+    'subscription', CASE WHEN v_subscription IS NOT NULL THEN
+      jsonb_build_object(
+        'plan_name', v_subscription.plan_name,
+        'start_date', v_subscription.start_date,
+        'end_date', v_subscription.end_date,
+        'is_active', v_subscription.is_active
+      )
+    ELSE NULL END
+  );
+
+  RETURN v_result;
+END;
+$$;
+
+-- 2. Portal Refresh
+CREATE OR REPLACE FUNCTION portal_refresh(p_member_id UUID)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_member record;
+  v_subscription record;
+  v_result jsonb;
+BEGIN
+  SELECT * INTO v_member
+  FROM members
+  WHERE id = p_member_id AND is_deleted = false
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT * INTO v_subscription
+  FROM subscriptions
+  WHERE member_id = v_member.id AND is_active = true AND end_date >= CURRENT_DATE
+  ORDER BY end_date DESC
+  LIMIT 1;
+
+  v_result := jsonb_build_object(
+    'id', v_member.id,
+    'member_number', v_member.member_number,
+    'name', v_member.name,
+    'phone', v_member.phone,
+    'profile_picture_url', v_member.profile_picture_url,
+    'thumbnail_url', v_member.thumbnail_url,
+    'access_level', v_member.access_level,
+    'member_password', v_member.member_password,
+    'subscription', CASE WHEN v_subscription IS NOT NULL THEN
+      jsonb_build_object(
+        'plan_name', v_subscription.plan_name,
+        'start_date', v_subscription.start_date,
+        'end_date', v_subscription.end_date,
+        'is_active', v_subscription.is_active
+      )
+    ELSE NULL END
+  );
+
+  RETURN v_result;
+END;
+$$;
+
+-- 3. Portal Mark Attendance
+CREATE OR REPLACE FUNCTION portal_mark_attendance(p_member_id UUID)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  INSERT INTO attendance (member_id, check_in_date, check_in_time)
+  VALUES (p_member_id, CURRENT_DATE, NOW())
+  ON CONFLICT (member_id, check_in_date) DO NOTHING;
+  
+  RETURN true;
+END;
+$$;
+
+-- 4. Portal Fetch Attendance
+CREATE OR REPLACE FUNCTION portal_fetch_attendance(p_member_id UUID, p_days INTEGER DEFAULT 60)
+RETURNS TABLE (id UUID, member_id UUID, check_in_date DATE, check_in_time TIMESTAMPTZ)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT a.id, a.member_id, a.check_in_date, a.check_in_time
+  FROM attendance a
+  WHERE a.member_id = p_member_id AND a.check_in_date >= (CURRENT_DATE - p_days)
+  ORDER BY a.check_in_date DESC;
+END;
+$$;
+
+-- =============================================================
+-- Add missing tables
+-- =============================================================
+CREATE TABLE IF NOT EXISTS inventory (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('Supplement', 'Merchandise', 'Beverage', 'Other')),
+  quantity INTEGER NOT NULL DEFAULT 0,
+  price INTEGER NOT NULL DEFAULT 0,
+  purchase_price INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS inventory_sales (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id UUID NOT NULL REFERENCES inventory(id) ON DELETE CASCADE,
+  quantity INTEGER NOT NULL,
+  total_amount INTEGER NOT NULL,
+  method TEXT NOT NULL,
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+  id TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory_sales ENABLE ROW LEVEL SECURITY;
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Authenticated users full access" ON inventory;
+CREATE POLICY "Authenticated users full access" ON inventory FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users full access" ON inventory_sales;
+CREATE POLICY "Authenticated users full access" ON inventory_sales FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users full access" ON settings;
+CREATE POLICY "Authenticated users full access" ON settings FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Member, Subscription, PaymentType } from '../types';
+import { Member, Subscription, PaymentType, Attendance } from '../types';
 import { ArrowLeft, User, Phone, MapPin, Calendar, HeartPulse, Edit2, Plus, CreditCard, Clock, CheckCircle2, Trash2, Bell, MessageSquare, KeyRound, Eye, EyeOff, Save, X, Loader2, UserCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 import { getFormattedBsDate } from '../utils';
