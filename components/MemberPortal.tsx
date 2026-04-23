@@ -39,7 +39,13 @@ const MemberPortal: React.FC = () => {
             const freshData = await portalService.refreshMember(parsed.id);
             if (freshData) {
               setMember(freshData);
-              await markAttendanceAndFetch(freshData.id);
+              const isCheckin = window.location.hash.includes('/checkin');
+              if (isCheckin) {
+                await markAttendanceAndFetch(freshData.id);
+                window.history.replaceState(null, '', '#/portal');
+              } else {
+                await justFetchAttendance(freshData.id);
+              }
             } else {
               localStorage.removeItem(STORAGE_KEY);
             }
@@ -57,6 +63,15 @@ const MemberPortal: React.FC = () => {
     };
     checkSession();
   }, []);
+
+  const justFetchAttendance = async (memberId: string) => {
+    try {
+      const records = await portalService.fetchAttendance(memberId);
+      setAttendance(records);
+    } catch (e) {
+      console.error('Attendance fetch failed:', e);
+    }
+  };
 
   const markAttendanceAndFetch = async (memberId: string) => {
     setIsMarking(true);
@@ -87,7 +102,14 @@ const MemberPortal: React.FC = () => {
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ id: memberData.id }));
       setMember(memberData);
-      await markAttendanceAndFetch(memberData.id);
+      
+      const isCheckin = window.location.hash.includes('/checkin');
+      if (isCheckin) {
+        await markAttendanceAndFetch(memberData.id);
+        window.history.replaceState(null, '', '#/portal');
+      } else {
+        await justFetchAttendance(memberData.id);
+      }
     } catch (err) {
       setError('Something went wrong.');
     } finally {
@@ -175,7 +197,7 @@ const MemberPortal: React.FC = () => {
 
   if (!member) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="fixed inset-0 bg-slate-50 flex flex-col items-center justify-center p-4 overflow-y-auto">
         <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
           <div className="bg-red-600 p-8 text-center text-white">
             <ClarityIcon className="w-12 h-12 mx-auto mb-4" />
@@ -242,8 +264,8 @@ const MemberPortal: React.FC = () => {
   const isExpiringSoon = sub && sub.daysRemaining <= 7;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col pb-12">
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 py-3 flex items-center justify-between">
+    <div className="fixed inset-0 bg-slate-50 flex flex-col">
+      <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0 z-30">
         <div className="flex items-center gap-2">
           <ClarityIcon className="w-6 h-6 text-red-600" />
           <span className="font-bold text-slate-800">Clarity Portal</span>
@@ -256,7 +278,8 @@ const MemberPortal: React.FC = () => {
         </button>
       </div>
 
-      <div className="bg-red-600 p-6 pt-8 pb-12 text-white relative overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
+        <div className="bg-red-600 p-6 pt-8 pb-12 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-3xl rounded-full -mr-32 -mt-32"></div>
         <div className="relative flex items-center gap-4">
           <div className="w-20 h-20 bg-white/20 backdrop-blur-md border-2 border-white/30 rounded-2xl overflow-hidden flex items-center justify-center shrink-0">
@@ -435,9 +458,11 @@ const MemberPortal: React.FC = () => {
           </div>
           <p className="text-slate-400 text-[10px] font-medium uppercase tracking-widest">© 2026 Premium Fitness System</p>
         </div>
+        <div className="pb-12" />
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default MemberPortal;

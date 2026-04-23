@@ -12,9 +12,10 @@ const Settings: React.FC = () => {
   const [copySuccess, setCopySuccess] = useState(false);
 
   const portalUrl = `${window.location.origin}/#/portal`;
+  const checkinUrl = `${window.location.origin}/#/portal/checkin`;
 
   const handleCopyUrl = () => {
-    navigator.clipboard.writeText(portalUrl);
+    navigator.clipboard.writeText(checkinUrl);
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
   };
@@ -217,7 +218,7 @@ const Settings: React.FC = () => {
                 Copy this URL and use it to generate a static QR code. Print and place the QR code at your gym entrance.
               </p>
               <div className="flex items-center gap-2 mt-3 p-1 pl-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                <span className="text-sm font-mono text-slate-600 truncate flex-1">{portalUrl}</span>
+                <span className="text-sm font-mono text-slate-600 truncate flex-1">{checkinUrl}</span>
                 <button 
                   onClick={handleCopyUrl}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 ${
@@ -263,8 +264,8 @@ const Settings: React.FC = () => {
             <h3 className="text-sm font-bold text-slate-800 mb-6">Static QR Code Preview</h3>
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-6">
               <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(portalUrl)}`} 
-                alt="Portal QR Code" 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(checkinUrl)}`} 
+                alt="Portal Check-in QR Code" 
                 className="w-48 h-48"
               />
             </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Member, Subscription, Expense, InventoryItem, InventorySale } from './types';
+import { Member, Subscription, Expense, InventoryItem, InventorySale, Attendance } from './types';
 import Dashboard from './components/Dashboard';
 import MembersList from './components/MembersList';
 import MemberDetailView from './components/MemberDetailView';
@@ -91,6 +91,7 @@ const App = () => {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [inventorySales, setInventorySales] = useState<InventorySale[]>([]);
   const [todayAttendance, setTodayAttendance] = useState(0);
+  const [memberAttendance, setMemberAttendance] = useState<Attendance[]>([]);
   const [notificationLogs, setNotificationLogs] = useState<LogEntry[]>([
     {
       id: '1',
@@ -128,6 +129,23 @@ const App = () => {
       clearTimeout(removeTimer);
     };
   }, []);
+
+  // Fetch member attendance when selectedMemberId changes
+  useEffect(() => {
+    if (activeTab === 'member-details' && selectedMemberId) {
+      const fetchAttendance = async () => {
+        try {
+          const records = await portalService.fetchAttendance(selectedMemberId);
+          setMemberAttendance(records);
+        } catch (e) {
+          console.error('Failed to fetch member attendance:', e);
+        }
+      };
+      fetchAttendance();
+    } else {
+      setMemberAttendance([]);
+    }
+  }, [activeTab, selectedMemberId]);
 
   // Load members when user is authenticated
   useEffect(() => {
@@ -420,6 +438,7 @@ const App = () => {
                   {activeTab === 'member-details' && selectedMember && 
                      <MemberDetailView 
                          member={selectedMember} 
+                         attendance={memberAttendance}
                          onBack={() => window.history.back()} 
                          onEditMember={handleOpenEditMember} 
                          onSaveSubscription={handleSaveSubscription}

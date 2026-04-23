@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Member, Subscription, PaymentType } from '../types';
-import { ArrowLeft, User, Phone, MapPin, Calendar, HeartPulse, Edit2, Plus, CreditCard, Clock, CheckCircle2, Trash2, Bell, MessageSquare, KeyRound, Eye, EyeOff, Save, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, User, Phone, MapPin, Calendar, HeartPulse, Edit2, Plus, CreditCard, Clock, CheckCircle2, Trash2, Bell, MessageSquare, KeyRound, Eye, EyeOff, Save, X, Loader2, UserCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 import { getFormattedBsDate } from '../utils';
 import SubscriptionFormModal from './SubscriptionFormModal';
@@ -8,6 +8,7 @@ import { LogEntry } from './Notifications';
 
 interface MemberDetailViewProps {
   member: Member;
+  attendance: Attendance[];
   onBack: () => void;
   onEditMember: (member: Member) => void;
   onSaveSubscription: (memberId: string, subscription: Subscription) => void;
@@ -17,9 +18,12 @@ interface MemberDetailViewProps {
   onImageClick?: (url: string, name: string) => void;
 }
 
-const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onEditMember, onSaveSubscription, onDeleteMember, onUpdatePassword, notificationLogs = [], onImageClick }) => {
+const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, attendance, onBack, onEditMember, onSaveSubscription, onDeleteMember, onUpdatePassword, notificationLogs = [], onImageClick }) => {
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [editingSub, setEditingSub] = useState<Subscription | undefined>(undefined);
+
+  // Calendar state
+  const [calDate, setCalDate] = useState(new Date());
 
   // Password editing state
   const [isEditingPassword, setIsEditingPassword] = useState(false);
@@ -74,6 +78,40 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
   const memberLogs = notificationLogs.filter(log => 
     log.recipientNames.includes(member.name) || log.recipientNames.includes('All Members (Broadcast)')
   ).sort((a, b) => b.timestamp - a.timestamp);
+
+  const calendarData = useMemo(() => {
+    const year = calDate.getFullYear();
+    const month = calDate.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+    const todayDate = isCurrentMonth ? today.getDate() : -1;
+
+    const attendedDates = new Set(
+      attendance.map(a => {
+        const d = new Date(a.checkInDate);
+        if (d.getFullYear() === year && d.getMonth() === month) return d.getDate();
+        return -1;
+      }).filter(d => d > 0)
+    );
+
+    return { year, month, firstDay, daysInMonth, todayDate, attendedDates };
+  }, [attendance, calDate]);
+
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  const changeMonth = (offset: number) => {
+    const newDate = new Date(calDate);
+    newDate.setMonth(newDate.getMonth() + offset);
+    setCalDate(newDate);
+  };
+
+  const thisMonthCount = attendance.filter(a => {
+    const d = new Date(a.checkInDate);
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
 
   return (
     <div className="max-w-[1400px] mx-auto pb-12 space-y-4 md:space-y-6">
@@ -340,17 +378,117 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, onBack, onE
                    ))
                  )}
               </div>
-           </div>
-        </div>
-      </div>
+            </div>
 
-      <SubscriptionFormModal 
-        isOpen={isSubModalOpen} 
-        onClose={() => setIsSubModalOpen(false)} 
-        onSave={handleSaveSub} 
-        existingSubscription={editingSub} 
-        member={member}
-      />
+            {/* Visit History / Attendance Calendar */}
+            <div className="bg-white rounded-2xl md:rounded-3xl p-4 md:p-8 border border-slate-100 shadow-sm mt-4 md:mt-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Visit History</h2>
+                    <p className="text-xs text-slate-500 font-medium">Monthly gym attendance record</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                    <button 
+                      onClick={() => changeMonth(-1)}
+                      className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg text-slate-500 transition-all"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <span className="text-sm font-bold text-slate-800 min-w-[120px] text-center">
+                      {monthNames[calendarData.month]} {calendarData.year}
+                    </span>
+                    <button 
+                      onClick={() => changeMonth(1)}
+                      className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg text-slate-500 transition-all"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                  
+                  <div className="hidden sm:flex items-center gap-3">
+                    <div className="text-center px-3 border-l border-slate-200">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">This Month</p>
+                      <p className="text-lg font-black text-slate-800 leading-none">{thisMonthCount}</p>
+                    </div>
+                    <div className="text-center px-3 border-l border-slate-200">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total</p>
+                      <p className="text-lg font-black text-slate-800 leading-none">{attendance.length}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-7 gap-2 md:gap-4 mb-4">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                  <div key={d} className="text-[10px] md:text-xs font-bold text-slate-400 text-center uppercase tracking-widest pb-2">
+                    {d}
+                  </div>
+                ))}
+                
+                {Array.from({ length: calendarData.firstDay }).map((_, i) => (
+                  <div key={`empty-${i}`} className="aspect-square md:h-14"></div>
+                ))}
+
+                {Array.from({ length: calendarData.daysInMonth }).map((_, i) => {
+                  const day = i + 1;
+                  const attended = calendarData.attendedDates.has(day);
+                  const isToday = day === calendarData.todayDate;
+                  
+                  return (
+                    <div 
+                      key={day} 
+                      className={`relative aspect-square md:h-14 rounded-xl md:rounded-2xl flex flex-col items-center justify-center text-sm md:text-base font-bold transition-all ${
+                        attended 
+                          ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 scale-105 z-10' 
+                          : isToday 
+                            ? 'bg-white border-2 border-red-500 text-red-600' 
+                            : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+                      }`}
+                    >
+                      {day}
+                      {attended && (
+                        <div className="absolute top-1 right-1">
+                          <CheckCircle2 className="w-3 h-3 text-white/50" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center gap-4 mt-8 pt-4 border-t border-slate-50">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Attended</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full border-2 border-red-500"></div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Today</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-slate-200"></div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Missed</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+        <SubscriptionFormModal 
+          isOpen={isSubModalOpen} 
+          onClose={() => setIsSubModalOpen(false)} 
+          onSave={handleSaveSub} 
+          existingSubscription={editingSub} 
+          member={member}
+        />
+      </div>
     </div>
   );
 };
