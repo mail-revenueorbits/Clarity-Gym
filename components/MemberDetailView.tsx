@@ -82,7 +82,7 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, attendance,
   const calendarData = useMemo(() => {
     const year = calBsDate.year;
     const month = calBsDate.month;
-    const firstDay = getBaar(year, month, 1) - 1;
+    const firstDay = getBaar(year, month) - 1;
     const daysInMonth = getTotalDays(year, month);
     const todayBs = makeDualDateValueFromAd(new Date()).bs;
     const isCurrentMonth = todayBs.year === year && todayBs.month === month;

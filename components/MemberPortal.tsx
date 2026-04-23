@@ -131,7 +131,7 @@ const MemberPortal: React.FC = () => {
     const bsToday = today.bs;
     const year = bsToday.year;
     const month = bsToday.month;
-    const firstDay = getBaar(year, month, 1) - 1;
+    const firstDay = getBaar(year, month) - 1;
     const daysInMonth = getTotalDays(year, month);
     const todayDate = bsToday.day;
 
