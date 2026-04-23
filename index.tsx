@@ -5,6 +5,16 @@ import MemberPortal from './components/MemberPortal';
 import { AuthProvider } from './components/AuthContext';
 import './index.css';
 
+declare global {
+  interface Window {
+    deferredPrompt?: any;
+  }
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  window.deferredPrompt = e;
+});
 
 // Hash-based routing: /#/portal renders the member portal, everything else renders admin
 const RootRouter = () => {

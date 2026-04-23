@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { settingsService, PricingMatrix } from '../services/settingsService';
-import { Settings as SettingsIcon, Save, Loader2, Check, Edit2, X, QrCode, ExternalLink, Copy, Printer } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Loader2, Check, Edit2, X, QrCode, ExternalLink, Copy, Printer, Smartphone, Download } from 'lucide-react';
 
 const Settings: React.FC = () => {
   const [matrix, setMatrix] = useState<PricingMatrix | null>(null);
@@ -10,6 +10,12 @@ const Settings: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  
+  const [isStandalone, setIsStandalone] = useState(
+    window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
+  );
+  
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
   const portalUrl = `${window.location.origin}/#/portal`;
   const checkinUrl = `${window.location.origin}/#/portal/checkin`;
@@ -33,7 +39,25 @@ const Settings: React.FC = () => {
       }
     };
     fetchSettings();
+
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    const handleDisplayModeChange = (e: MediaQueryListEvent) => setIsStandalone(e.matches);
+    mediaQuery.addEventListener('change', handleDisplayModeChange);
+    
+    return () => mediaQuery.removeEventListener('change', handleDisplayModeChange);
   }, []);
+
+  const handleInstallClick = async () => {
+    if (window.deferredPrompt) {
+      window.deferredPrompt.prompt();
+      const { outcome } = await window.deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        window.deferredPrompt = null;
+      }
+    } else {
+      alert("To install this app on your device:\n\n1. Tap the Share button in your browser menu.\n2. Select 'Add to Home Screen'.");
+    }
+  };
 
   const handlePriceChange = (category: string, duration: string, value: string) => {
     if (!matrix) return;
@@ -197,6 +221,35 @@ const Settings: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* App Installation Card (Mobile Only) */}
+      {isMobile && !isStandalone && (
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-6 md:p-8 border border-slate-800 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+            <Smartphone className="w-48 h-48 text-white transform rotate-12" />
+          </div>
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div className="flex-1 text-white">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white backdrop-blur-sm">
+                  <Download className="w-5 h-5" />
+                </div>
+                <h2 className="text-xl font-bold">Install Clarity App</h2>
+              </div>
+              <p className="text-slate-300 text-sm leading-relaxed max-w-xl">
+                Install Clarity Gym Management on your device for a full-screen, native application experience. Works offline and loads instantly.
+              </p>
+            </div>
+            <button 
+              onClick={handleInstallClick}
+              className="w-full sm:w-auto px-6 py-3.5 bg-white text-slate-900 rounded-2xl font-bold text-sm hover:bg-slate-50 transition-all shadow-lg flex items-center justify-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Install App Now
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Member Portal Setup Card */}
       <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm">
