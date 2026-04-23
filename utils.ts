@@ -29,10 +29,10 @@ export const formatNepaliDate = (dateStr: string | null | undefined): string => 
  */
 import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 
-export const getFormattedBsDate = (adDate: Date | string | null | undefined): string => {
+export const getFormattedBsDate = (adDate: Date | string | number | null | undefined): string => {
   if (!adDate) return '—';
   try {
-    const dateObj = typeof adDate === 'string' ? new Date(adDate) : adDate;
+    const dateObj = (typeof adDate === 'string' || typeof adDate === 'number') ? new Date(adDate) : adDate;
     const bsDate = makeDualDateValueFromAd(dateObj).formatted.bs;
     return formatNepaliDate(bsDate);
   } catch (e) {
