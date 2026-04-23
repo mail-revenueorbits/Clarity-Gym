@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Member, Subscription, PaymentType, Attendance } from '../types';
 import { ArrowLeft, User, Phone, MapPin, Calendar, HeartPulse, Edit2, Plus, CreditCard, Clock, CheckCircle2, Trash2, Bell, MessageSquare, KeyRound, Eye, EyeOff, Save, X, Loader2, UserCheck, ChevronLeft, ChevronRight } from 'lucide-react';
-import { makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
+import { makeDualDateValueFromAd, getTotalDays, getBaar } from '@etpl/nepali-datepicker';
 import { getFormattedBsDate } from '../utils';
 import SubscriptionFormModal from './SubscriptionFormModal';
 import { LogEntry } from './Notifications';
@@ -23,7 +23,7 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, attendance,
   const [editingSub, setEditingSub] = useState<Subscription | undefined>(undefined);
 
   // Calendar state
-  const [calDate, setCalDate] = useState(new Date());
+  const [calBsDate, setCalBsDate] = useState(() => makeDualDateValueFromAd(new Date()).bs);
 
   // Password editing state
   const [isEditingPassword, setIsEditingPassword] = useState(false);
@@ -80,37 +80,46 @@ const MemberDetailView: React.FC<MemberDetailViewProps> = ({ member, attendance,
   ).sort((a, b) => b.timestamp - a.timestamp);
 
   const calendarData = useMemo(() => {
-    const year = calDate.getFullYear();
-    const month = calDate.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const today = new Date();
-    const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
-    const todayDate = isCurrentMonth ? today.getDate() : -1;
+    const year = calBsDate.year;
+    const month = calBsDate.month;
+    const firstDay = getBaar(year, month, 1) - 1;
+    const daysInMonth = getTotalDays(year, month);
+    const todayBs = makeDualDateValueFromAd(new Date()).bs;
+    const isCurrentMonth = todayBs.year === year && todayBs.month === month;
+    const todayDate = isCurrentMonth ? todayBs.day : -1;
 
     const attendedDates = new Set(
       attendance.map(a => {
-        const d = new Date(a.checkInDate);
-        if (d.getFullYear() === year && d.getMonth() === month) return d.getDate();
+        const d = makeDualDateValueFromAd(new Date(a.checkInDate)).bs;
+        if (d.year === year && d.month === month) return d.day;
         return -1;
       }).filter(d => d > 0)
     );
 
     return { year, month, firstDay, daysInMonth, todayDate, attendedDates };
-  }, [attendance, calDate]);
+  }, [attendance, calBsDate]);
 
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthNames = ['', 'Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'];
 
   const changeMonth = (offset: number) => {
-    const newDate = new Date(calDate);
-    newDate.setMonth(newDate.getMonth() + offset);
-    setCalDate(newDate);
+    setCalBsDate(prev => {
+      let newMonth = prev.month + offset;
+      let newYear = prev.year;
+      if (newMonth > 12) {
+        newMonth -= 12;
+        newYear += 1;
+      } else if (newMonth < 1) {
+        newMonth += 12;
+        newYear -= 1;
+      }
+      return { ...prev, year: newYear, month: newMonth };
+    });
   };
 
   const thisMonthCount = attendance.filter(a => {
-    const d = new Date(a.checkInDate);
-    const now = new Date();
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    const d = makeDualDateValueFromAd(new Date(a.checkInDate)).bs;
+    const nowBs = makeDualDateValueFromAd(new Date()).bs;
+    return d.year === nowBs.year && d.month === nowBs.month;
   }).length;
 
   return (

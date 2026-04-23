@@ -3,6 +3,7 @@ import { Attendance } from '../types';
 import { portalService } from '../services/portalService';
 import { Calendar, Clock, Users, Loader2, ChevronLeft, ChevronRight, CheckCircle2, UserCheck } from 'lucide-react';
 import { getFormattedBsDate } from '../utils';
+import { NepaliDatePicker, makeDualDateValueFromAd } from '@etpl/nepali-datepicker';
 
 interface AttendanceViewProps {
   onMemberClick?: (id: string) => void;
@@ -95,18 +96,23 @@ const AttendanceView: React.FC<AttendanceViewProps> = ({ onMemberClick }) => {
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-3">
-            <input
-              type="date"
-              value={selectedDate}
-              max={new Date().toISOString().split('T')[0]}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none bg-white"
+          <div className="flex items-center gap-3 relative z-50">
+            <NepaliDatePicker
+              value={selectedDate ? makeDualDateValueFromAd(new Date(selectedDate)) : null}
+              onChange={(val) => {
+                if (val?.formatted.ad) setSelectedDate(val.formatted.ad);
+              }}
+              format="YYYY-MM-DD"
+              showCalendarSystemToggle={true}
+              showLanguageToggle={true}
+              classNames={{
+                input: "px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none bg-white"
+              }}
             />
             {!isToday && (
               <button
                 onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
-                className="px-3 py-2 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                className="px-3 py-2 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors shrink-0"
               >
                 Today
               </button>

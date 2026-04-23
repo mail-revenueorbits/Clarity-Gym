@@ -3,7 +3,7 @@ import { portalService, PortalMember } from '../services/portalService';
 import { Attendance } from '../types';
 import { Loader2, LogOut, Calendar, Clock, CheckCircle2, AlertTriangle, Dumbbell, Shield, Phone, Lock, ChevronRight, Flame, UserCheck, Timer } from 'lucide-react';
 import { getFormattedBsDate } from '../utils';
-
+import { makeDualDateValueFromAd, getTotalDays, getBaar } from '@etpl/nepali-datepicker';
 const STORAGE_KEY = 'clarity_portal_member';
 
 const ClarityIcon = ({ className }: { className?: string }) => (
@@ -127,17 +127,18 @@ const MemberPortal: React.FC = () => {
   };
 
   const calendarData = useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const todayDate = now.getDate();
+    const today = makeDualDateValueFromAd(new Date());
+    const bsToday = today.bs;
+    const year = bsToday.year;
+    const month = bsToday.month;
+    const firstDay = getBaar(year, month, 1) - 1;
+    const daysInMonth = getTotalDays(year, month);
+    const todayDate = bsToday.day;
 
     const attendedDates = new Set(
       attendance.map(a => {
-        const d = new Date(a.checkInDate);
-        if (d.getFullYear() === year && d.getMonth() === month) return d.getDate();
+        const d = makeDualDateValueFromAd(new Date(a.checkInDate)).bs;
+        if (d.year === year && d.month === month) return d.day;
         return -1;
       }).filter(d => d > 0)
     );
@@ -145,7 +146,7 @@ const MemberPortal: React.FC = () => {
     return { year, month, firstDay, daysInMonth, todayDate, attendedDates };
   }, [attendance]);
 
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthNames = ['', 'Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'];
 
   const currentStreak = useMemo(() => {
     if (attendance.length === 0) return 0;
@@ -178,10 +179,10 @@ const MemberPortal: React.FC = () => {
   }, [attendance]);
 
   const thisMonthCount = useMemo(() => {
-    const now = new Date();
+    const nowBs = makeDualDateValueFromAd(new Date()).bs;
     return attendance.filter(a => {
-      const d = new Date(a.checkInDate);
-      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      const d = makeDualDateValueFromAd(new Date(a.checkInDate)).bs;
+      return d.year === nowBs.year && d.month === nowBs.month;
     }).length;
   }, [attendance]);
 

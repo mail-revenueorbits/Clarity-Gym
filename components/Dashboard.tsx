@@ -104,7 +104,14 @@ const Dashboard: React.FC<DashboardProps> = ({ members, expenses, inventorySales
   const activeMembersCount = members.filter(m => !m.isDeleted && m.subscriptions.some(s => s.isActive && s.endDate >= todayStr)).length;
   const totalMembersCount = members.filter(m => !m.isDeleted).length;
   
-  const newSignupsThisMonth = members.filter(m => !m.isDeleted && m.joinedDate.startsWith(currentMonthPrefix)).length;
+  const newSignupsThisMonth = useMemo(() => {
+    const nowBs = makeDualDateValueFromAd(new Date()).bs;
+    return members.filter(m => {
+      if (m.isDeleted || !m.joinedDate) return false;
+      const d = makeDualDateValueFromAd(new Date(m.joinedDate)).bs;
+      return d.year === nowBs.year && d.month === nowBs.month;
+    }).length;
+  }, [members]);
 
   return (
     <div className="max-w-[1400px] mx-auto pb-16 space-y-6">
