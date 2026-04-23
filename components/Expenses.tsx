@@ -228,7 +228,7 @@ const Expenses: React.FC<ExpensesProps> = ({ expenses, onAddExpense, onDeleteExp
                   </select>
                 </div>
               </div>
-              <div className="relative z-[60] [&>div]:!w-full [&_input]:!w-full">
+              <div className="relative z-[60]">
                 <label className="block text-sm font-bold text-slate-700 mb-1.5">Date</label>
                 <NepaliDatePicker
                   value={formData.date ? makeDualDateValueFromAd(new Date(formData.date)) : null}
@@ -236,7 +236,11 @@ const Expenses: React.FC<ExpensesProps> = ({ expenses, onAddExpense, onDeleteExp
                   format="YYYY-MM-DD"
                   showCalendarSystemToggle={true}
                   showLanguageToggle={true}
-                  classNames={{ input: "w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none text-sm font-medium" }}
+                  classNames={{ 
+                    container: "w-full",
+                    inputWrapper: "w-full",
+                    input: "w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none text-sm font-medium box-border" 
+                  }}
                 />
               </div>
               <div>
