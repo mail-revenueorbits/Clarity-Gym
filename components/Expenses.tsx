@@ -230,18 +230,22 @@ const Expenses: React.FC<ExpensesProps> = ({ expenses, onAddExpense, onDeleteExp
               </div>
               <div className="relative z-[60]">
                 <label className="block text-sm font-bold text-slate-700 mb-1.5">Date</label>
-                <NepaliDatePicker
-                  value={formData.date ? makeDualDateValueFromAd(new Date(formData.date)) : null}
-                  onChange={(val) => setFormData({...formData, date: val?.formatted.ad || ''})}
-                  format="YYYY-MM-DD"
-                  showCalendarSystemToggle={true}
-                  showLanguageToggle={true}
-                  classNames={{ 
-                    container: "w-full",
-                    inputWrapper: "w-full",
-                    input: "w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none text-sm font-medium box-border" 
-                  }}
-                />
+                <div className="flex w-full">
+                  <div className="flex-1 min-w-0">
+                    <NepaliDatePicker
+                      value={formData.date ? makeDualDateValueFromAd(new Date(formData.date)) : null}
+                      onChange={(val) => setFormData({...formData, date: val?.formatted.ad || ''})}
+                      format="YYYY-MM-DD"
+                      showCalendarSystemToggle={true}
+                      showLanguageToggle={true}
+                      classNames={{ 
+                        container: "!w-full",
+                        inputWrapper: "!w-full",
+                        input: "!w-full !max-w-full !px-4 !py-2.5 !rounded-xl !border !border-solid !border-slate-200 focus:!border-red-500 focus:!ring-1 focus:!ring-red-500 !outline-none text-sm font-medium box-border m-0 !bg-white" 
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1.5">Notes (Optional)</label>
