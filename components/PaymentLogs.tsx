@@ -132,30 +132,32 @@ const PaymentLogs: React.FC<PaymentLogsProps> = ({ members, onMemberClick, priva
             <span className="text-slate-600 font-bold">{allRecords.length}</span> transactions recorded
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto mt-3 sm:mt-0">
           {/* Month Selector */}
-          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
-            <Calendar className="w-4 h-4 text-slate-400" />
-            <select 
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer"
-            >
-              {NEPALI_MONTHS.map((m, i) => (
-                <option key={m} value={i + 1}>{m}</option>
-              ))}
-            </select>
+          <div className="flex items-center justify-between sm:justify-start gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 shadow-sm w-full sm:w-auto">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-slate-400" />
+              <select 
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer"
+              >
+                {NEPALI_MONTHS.map((m, i) => (
+                  <option key={m} value={i + 1}>{m}</option>
+                ))}
+              </select>
+            </div>
             <select 
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer border-l border-slate-200 pl-2 ml-1"
+              className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer border-l border-slate-200 pl-3 ml-1"
             >
               {[2080, 2081, 2082, 2083, 2084, 2085].map(y => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
           </div>
-          <button onClick={handleExportCSV} className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all shadow-sm text-sm">
+          <button onClick={handleExportCSV} className="flex items-center justify-center gap-2 px-5 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all shadow-sm text-sm w-full sm:w-auto">
             <Download className="w-4 h-4" /> Export CSV
           </button>
         </div>

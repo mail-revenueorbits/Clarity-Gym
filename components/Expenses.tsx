@@ -228,7 +228,7 @@ const Expenses: React.FC<ExpensesProps> = ({ expenses, onAddExpense, onDeleteExp
                   </select>
                 </div>
               </div>
-              <div className="relative z-[60]">
+              <div className="relative z-[60] [&>div]:!w-full [&_input]:!w-full">
                 <label className="block text-sm font-bold text-slate-700 mb-1.5">Date</label>
                 <NepaliDatePicker
                   value={formData.date ? makeDualDateValueFromAd(new Date(formData.date)) : null}

@@ -99,7 +99,7 @@ const AttendanceView: React.FC<AttendanceViewProps> = ({ onMemberClick }) => {
             <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
           </button>
 
-          <div className="flex items-center gap-2 md:gap-3 relative z-50">
+          <div className="flex items-center gap-2 md:gap-3 relative z-20">
             <NepaliDatePicker
               value={selectedDate ? makeDualDateValueFromAd(new Date(selectedDate)) : null}
               onChange={(val) => {

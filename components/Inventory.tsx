@@ -171,9 +171,9 @@ const Inventory: React.FC<InventoryProps> = ({ items, sales, onAddItem, onUpdate
         {/* Reuse the Item Modal for Editing */}
         {isItemModalOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-200">
-              <div className="px-6 py-5 border-b border-slate-100 bg-slate-50"><h2 className="text-xl font-bold text-slate-800">Edit Item Details</h2></div>
-              <form onSubmit={handleSaveItem} className="p-6 space-y-4">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col mt-auto sm:mt-0">
+              <div className="px-6 py-5 border-b border-slate-100 bg-slate-50 shrink-0"><h2 className="text-xl font-bold text-slate-800">Edit Item Details</h2></div>
+              <form onSubmit={handleSaveItem} className="p-6 space-y-4 overflow-y-auto">
                 <div><label className="block text-sm font-bold text-slate-700 mb-1">Item Name</label><input required name="name" defaultValue={editingItem?.name} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-red-500 outline-none" /></div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1">Category</label>
@@ -360,9 +360,9 @@ const Inventory: React.FC<InventoryProps> = ({ items, sales, onAddItem, onUpdate
       {/* Item Modal */}
       {isItemModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-5 border-b border-slate-100 bg-slate-50"><h2 className="text-xl font-bold text-slate-800">{editingItem ? 'Edit Item' : 'Add Inventory Item'}</h2></div>
-            <form onSubmit={handleSaveItem} className="p-6 space-y-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col mt-auto sm:mt-0">
+            <div className="px-6 py-5 border-b border-slate-100 bg-slate-50 shrink-0"><h2 className="text-xl font-bold text-slate-800">{editingItem ? 'Edit Item' : 'Add Inventory Item'}</h2></div>
+            <form onSubmit={handleSaveItem} className="p-6 space-y-4 overflow-y-auto">
               <div><label className="block text-sm font-bold text-slate-700 mb-1">Item Name</label><input required name="name" defaultValue={editingItem?.name} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-red-500 outline-none" /></div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Category</label>
@@ -387,9 +387,9 @@ const Inventory: React.FC<InventoryProps> = ({ items, sales, onAddItem, onUpdate
       {/* Sale Modal */}
       {isSaleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-5 border-b border-slate-100 bg-slate-50"><h2 className="text-xl font-bold text-slate-800">Record Sale (POS)</h2></div>
-            <form onSubmit={handleSaveSale} className="p-6 space-y-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col mt-auto sm:mt-0">
+            <div className="px-6 py-5 border-b border-slate-100 bg-slate-50 shrink-0"><h2 className="text-xl font-bold text-slate-800">Record Sale (POS)</h2></div>
+            <form onSubmit={handleSaveSale} className="p-6 space-y-4 overflow-y-auto">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Select Item</label>
                 <select required value={saleFormData.itemId} onChange={e => setSaleFormData({...saleFormData, itemId: e.target.value})} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-red-500 outline-none bg-white">
